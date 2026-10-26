@@ -20,7 +20,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .up { color: var(--up); } .down { color: var(--down); } .brass { color: var(--brass); } .muted { color: var(--muted); }
 
 /* ── top bar ── */
-.top { display: flex; align-items: center; gap: 1rem; padding: 0 .9rem; border-bottom: 1px solid var(--line); background: var(--panel); }
+.top { display: flex; align-items: center; gap: .8rem; padding: 0 .9rem; border-bottom: 1px solid var(--line); background: var(--panel); }
 .mark { display: inline-flex; align-items: center; gap: .45rem; font-weight: 600; letter-spacing: .01em; } .mark svg { width: 20px; height: 20px; }
 .title { display: flex; align-items: baseline; gap: .6rem; min-width: 0; } .title b { font-weight: 600; font-size: var(--t-md); white-space: nowrap; } .title span { color: var(--muted); font-size: var(--t-xs); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tfs { display: inline-flex; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; } .tfs button { padding: .18rem .55rem; font-family: var(--mono); font-size: var(--t-xs); color: var(--muted); } .tfs button + button { border-left: 1px solid var(--line-2); } .tfs button.on { color: var(--text); background: var(--brass-2); }

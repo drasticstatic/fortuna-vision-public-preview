@@ -6,7 +6,7 @@
  */
 export const ALIASES = {es: 'S&P 500', sp: 'S&P 500', spx: 'S&P 500', sp500: 'S&P 500', nq: 'Nasdaq-100', ndx: 'Nasdaq-100', nas: 'Nasdaq-100', nasdaq: 'Nasdaq-100', gc: 'Gold', xau: 'Gold', gold: 'Gold', si: 'Silver', xag: 'Silver', silver: 'Silver', cl: 'Crude', wti: 'Crude', oil: 'Crude', crude: 'Crude', brent: 'Brent', xbr: 'Brent', btc: 'BTC', eth: 'ETH', sol: 'SOL', rty: 'Russell 2000', m2k: 'Russell 2000', russell: 'Russell 2000', total2: 'TOTAL2'};
 const TFS = {'1m': '5m', '5m': '5m', '5': '5m', '15m': '15m', '15': '15m', '1h': '1h', '60': '1h', 'h': '1h', '4h': '4h', '240': '4h', '1d': '1d', 'd': '1d', 'daily': '1d'};
-const VERBS = ['levels', 'regime', 'flow', 'gamma', 'gex', 'calc', 'desk', 'draw', 'clear', 'theme', 'help', 'fit', 'follow', 'line', 'candles', 'vol', 'volume', 'svg', 'tradingview', 'tv'];
+const VERBS = ['levels', 'regime', 'flow', 'gamma', 'gex', 'calc', 'desk', 'draw', 'clear', 'theme', 'help', 'fit', 'follow', 'line', 'candles', 'vol', 'volume', 'svg', 'tradingview', 'tv', 'treasury', 'markets', 'yields', 'stables', 'holdings'];
 
 export function parse(text, markets) {
   const toks = text.trim().toLowerCase().split(/\s+/).filter(Boolean); if (!toks.length) return null;
@@ -35,5 +35,6 @@ export const HELP = `
 <tr><th>Tabs</th><td>levels · regime · flow · gamma · calc · desk, for example <code>btc gamma</code></td></tr>
 <tr><th>Chart</th><td>fit · follow · line · candles · vol (toggle volume + profile) · <code>svg</code> / <code>tradingview</code> picks the engine</td></tr>
 <tr><th>Drawing</th><td><code>draw trend</code> · ray · hline · hray · vline · rect · fib · long · short · text · <code>clear</code> removes this market's drawings · Delete removes the selected one</td></tr>
+<tr><th>Modes</th><td><code>treasury</code> turns the workstation toward a DAO treasury (chains by value locked, stablecoin yields, supply, your holdings); <code>markets</code> comes back</td></tr>
 <tr><th>Theme</th><td><code>theme</code> toggles light and dark</td></tr></table>
 <p>Keys: <code>1</code>–<code>5</code> timeframes · <code>f</code> fit · <code>l</code> line/candles · <code>v</code> volume · <code>Delete</code> remove the selected drawing · <code>?</code> this card.</p>`;
