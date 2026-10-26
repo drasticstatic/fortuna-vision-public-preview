@@ -10,7 +10,8 @@ const pct = (v, d = 2) => v == null ? '—' : (v > 0 ? '+' : '') + Number(v).toF
 const cls = (v) => v > 0 ? 'up' : v < 0 ? 'down' : '';
 const get = async (u) => { const r = await fetch(u); if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); };
 
-export const TABS = [{id: 'yields', label: 'Yields'}, {id: 'stables', label: 'Stables'}, {id: 'holdings', label: 'Holdings'}, {id: 'tdesk', label: 'Desk'}];
+import { tabArb } from './dexarb.js'; // the Arbitrum DEX-arb lane (Alfred's adapter; reads the lane's public snapshot)
+export const TABS = [{id: 'yields', label: 'Yields'}, {id: 'stables', label: 'Stables'}, {id: 'holdings', label: 'Holdings'}, {id: 'arb', label: 'DEX arb'}, {id: 'tdesk', label: 'Desk'}];
 const S = {chains: null, chain: 'Ethereum', hist: {}, pools: null, stables: null, prices: {}, tab: 'yields'};
 let app = null;
 
@@ -37,7 +38,7 @@ async function selectChain(name) {
   $('#legend').innerHTML = `<span><b>${esc(name)} TVL</b> daily, USD</span><span style="color:#9b8cff">EMA 30</span><span style="color:#ff8fb1">EMA 90</span>`;
   renderTab(S.tab);
 }
-export function renderTab(t) { S.tab = t; ({yields: tabYields, stables: tabStables, holdings: tabHoldings, tdesk: tabDesk}[t] || (() => {}))(); }
+export function renderTab(t) { S.tab = t; ({yields: tabYields, stables: tabStables, holdings: tabHoldings, arb: tabArb, tdesk: tabDesk}[t] || (() => {}))(); }
 
 async function tabYields() {
   const el = $('#tab-yields'); if (!el) return;
