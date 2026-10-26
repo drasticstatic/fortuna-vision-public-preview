@@ -2,6 +2,7 @@
  * a command line underneath. All state lives here; chart.js owns rendering, data.js owns sources, command.js owns the grammar. */
 import {loadTerminal, candles, mids, book, tradeStream, IV_MS} from './data.js';
 import {createChart, LineStyle, EMA} from './chart.js';
+import {createSvgChart} from './svgchart.js';
 import {parse, history, HELP} from './command.js';
 
 const $ = (s, r = document) => r.querySelector(s); const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -16,9 +17,10 @@ const fmtET = (t, o) => new Date(t).toLocaleString('en-US', Object.assign({timeZ
 
 const T = {levels: null, state: null, signals: null, gex: null, base: ''}; let MIDS = {};
 const cur = {market: null, iv: '1h', bars: [], h1: null, m15: null, mode: 'candles', zth: []};
-const view = {vol: true, zth: true, rails: false, fvg: false, marks: false, fibs: false, gex: true, prints: true, osc: true, bands: false};
+const view = {vol: true, zth: true, rails: false, fvg: false, marks: false, fibs: false, gex: true, prints: true, osc: true, bands: false, bb: false};
 const FLOW = {feed: null, trades: [], book: null, stream: null, timer: null};
-let C = null, tool = 'cursor', tab = 'levels'; const IND = {};
+let C = null, SV = null, engine = 'lw', tool = 'cursor', tab = 'levels'; const IND = {};
+try { if (localStorage.getItem('fv-engine') === 'svg') engine = 'svg'; } catch (e) {}
 const lv = (m) => T.levels && T.levels.levels.find(x => x.market === m);
 const sig = (m) => T.signals && T.signals.feeds ? T.signals.feeds[m] : null;
 const offset = (m) => { const l = lv(m); return l && l.offset ? l.offset : 0; };
@@ -34,7 +36,7 @@ async function boot() {
   cur.market = qm && names.includes(qm) ? qm : armed ? armed.market : names[0];
   const qt = new URLSearchParams(location.search).get('tf'); if (qt && IV_MS[qt]) cur.iv = qt;
   C = createChart($('#chart')); C.onCrosshair(onCrosshair); C.onClick(onClick);
-  renderRail(); wireChrome(); renderTools(); renderTabs(); clock(); setInterval(clock, 1000);
+  renderRail(); wireChrome(); renderTools(); renderTabs(); clock(); setInterval(clock, 1000); applyEngine(engine);
   try { MIDS = await mids(); } catch (e) {} setInterval(async () => { try { MIDS = await mids(); renderRail(); } catch (e) {} }, 30000);
   setInterval(async () => { try { const fresh = await loadTerminal(); const changed = fresh.levels.asof !== T.levels.asof; Object.assign(T, fresh); if (changed) { status('ok', `data ${fmtET(T.levels.asof)} ET`); renderRail(); renderTab(); } } catch (e) {} }, 120000);
   await loadIndicator('og', 'og-oscillator.js');
@@ -66,32 +68,49 @@ async function selectMarket(m, iv, first) {
     cur.zth = window.AutoLevels ? AutoLevels.compute(rows, {tick: AutoLevels.TICKS[m] || Math.max(1e-6, rows[rows.length - 1].c * 1e-5), forming}) : [];
     cur.m15 = null; if (view.rails) await loadRails();
   } catch (e) { console.error(e); $('#mkt-sub').textContent = `${l.feed} · candles unavailable`; return; }
-  draw(); if (first) C.fit(); renderTab(); flowConnect();
+  draw(); if (first) { C.fit(); if (SV) SV.fit(); } renderTab(); flowConnect();
 }
 const agg = (bars, ms) => { const out = new Map(); bars.forEach(b => { const k = b.t - b.t % ms; const o = out.get(k); if (!o) out.set(k, {t: k, o: b.o, h: b.h, l: b.l, c: b.c, v: b.v || 0}); else { o.h = Math.max(o.h, b.h); o.l = Math.min(o.l, b.l); o.c = b.c; o.v += b.v || 0; } }); return [...out.values()].sort((a, b) => a.t - b.t); };
 async function loadRails() { const l = lv(cur.market); if (!l || l.candles || cur.m15) return; try { const rows = await candles(l.feed, '15m', 480); cur.m15 = {candles: rows, sessions: window.AutoLevels ? AutoLevels.sessions(rows, 3) : []}; } catch (e) {} }
 
 /* ── draw everything ── */
+const SCENE_LS = {solid: 0, dotted: 1, dashed: 2};
+function buildScene() {
+  const l = lv(cur.market); const all = cur.bars; if (!l || !all.length) return null; const m = cur.market; const o = offset(m);
+  const closes = all.map(c => c.c); const closed = closedBars();
+  const sc = {market: m, iv: cur.iv, mode: cur.mode, bars: all, vol: view.vol, emas: [{values: EMA(closes, 20), color: '#35c7dd'}, {values: EMA(closes, 50), color: '#9b8cff'}, {values: all.length >= 200 ? EMA(closes, 200) : null, color: '#ff8fb1'}], lines: [], boxes: [], rays: [], marks: [], paths: [], panes: []};
+  [[l.pdh, 'PDH', '#5aa9ff'], [l.pdl, 'PDL', '#5aa9ff'], [l.midnight_open, 'midnight', '#8a94a6'], [l.week_open, 'week open', '#8a94a6']].forEach(([v, t, c]) => { if (v != null) sc.lines.push({price: v, color: c, title: t, style: 'dashed', width: 1, side: 'r'}); });
+  (T.state.positions || []).filter(p => p.market === m || p.symbol === m).forEach(p => [[p.entry, `${p.side} · ${p.venue}`, '#3ddc97', 'solid'], [p.tp, 'target', '#3ddc97', 'dashed'], [p.stop, 'stop', '#ff5c7a', 'solid'], [p.liq, 'liq', '#ff5c7a', 'dotted']].forEach(([v, t, c, st]) => { if (v != null) sc.lines.push({price: toFeed(v, m), color: c, title: t, style: st, width: 1, side: 'l'}); }));
+  (T.state.watchlist || []).filter(w => w.market === m && w.zone_lo != null).forEach(w => sc.boxes.push({p0: toFeed(w.zone_lo, m), p1: toFeed(w.zone_hi, m), fill: 'rgba(217,164,65,.12)', stroke: 'rgba(217,164,65,.55)', dash: [3, 3], label: `${w.direction} zone · ${w.status}`}));
+  if (view.zth && cur.zth.length && cur.iv !== '4h' && cur.iv !== '1d') cur.zth.forEach(z => { const st = {KEY: ['#d9a441', 2.2, [], 1], '5/5': ['#35c7dd', 1, [], .85], '3/5': ['#35c7dd', 1, [2, 3], .6], ghost: ['#9b8cff', 1, [2, 3], Math.max(.15, .45 * (1 - z.tags * .25))]}[z.type]; sc.rays.push({t0: z.born / 1000, price: z.price, color: st[0], width: st[1], dash: st[2], alpha: st[3], label: z.type, labelPos: 'right', bold: z.type === 'KEY'}); });
+  if (view.bands && cur.zth.length && l.atr_1h) AutoLevels.atrBands(cur.zth.filter(z => z.type !== 'ghost'), l.atr_1h).forEach(b => sc.boxes.push({p0: b.lo, p1: b.hi, fill: 'rgba(53,199,221,.06)'}));
+  if (view.fibs && window.Regime) { const imp = Regime.impulse(closed); if (imp) Object.entries(imp.fibs).forEach(([q, v]) => sc.rays.push({t0: imp.startT / 1000, price: v, color: '#f2b94b', width: ['0.5', '0.618', '0.705'].includes(q) ? 1.2 : .8, dash: +q > 1 ? [2, 4] : [], alpha: .9, label: `${q} · ${px(v)}`})); }
+  if (view.rails && cur.m15 && IV_MS[cur.iv] <= 36e5) cur.m15.sessions.forEach((d, k) => { const a = k === 0 ? 1 : k === 1 ? .55 : .35; const dash = k === 0 ? [] : [5, 4]; if (d.fcr) { sc.rays.push({t0: d.fcr.t / 1000, price: d.fcr.high, color: '#3ddc97', width: k === 0 ? 2 : 1, dash, alpha: a, label: 'FCR ▲ ' + d.day.slice(5)}); sc.rays.push({t0: d.fcr.t / 1000, price: d.fcr.low, color: '#ff5c7a', width: k === 0 ? 2 : 1, dash, alpha: a, label: 'FCR ▼ ' + d.day.slice(5)}); } [[d.open930, '4/5 9:30 open'], [d.close1600, '4/5 16:00 close'], [d.close1700, '4/5 17:00 close'], [d.open1800, '4/5 18:00 open']].forEach(([s, t]) => { if (s) sc.rays.push({t0: s.t / 1000, price: s.price, color: k === 0 ? '#089981' : '#35c7dd', width: 1, dash: [4, 3], alpha: a * .8, label: t + (k ? ' · ' + d.day.slice(5) : ''), labelPos: 'right'}); }); });
+  if (view.fvg && window.AutoLevels) AutoLevels.fvgs(closed, 0, 0).slice(-40).forEach(f => { const t1 = closed[Math.min(closed.length - 1, f.i + 5)]; sc.boxes.push({t0: f.t / 1000, t1: t1 ? t1.t / 1000 : null, p0: f.bot, p1: f.top, fill: f.dir === 'bull' ? 'rgba(61,220,151,.14)' : 'rgba(255,92,122,.14)'}); });
+  if (view.marks && window.AutoLevels && cur.zth.length) { const tick = AutoLevels.TICKS[m] || Math.max(1e-6, closed[closed.length - 1].c * 1e-5); AutoLevels.patterns(closed, cur.zth, tick).forEach(p => sc.marks.push({t: p.t / 1000, price: p.price, side: p.side, text: p.tags.join('·'), color: p.tags.includes('BRK') || p.tags.includes('RT') ? '#9b8cff' : p.tags.includes('R') ? '#ff5c7a' : p.tags.includes('B') ? '#3ddc97' : p.tags.includes('SFP') ? '#ff8fb1' : p.tags.includes('1-2-3') ? '#f2b94b' : '#35c7dd'})); }
+  if (view.gex) { const gx = gexFor(m); if (gx) gx.walls.forEach(w => sc.rays.push({price: w.price, color: w.color, width: w.width, dash: w.dash, alpha: .9, label: w.label, labelPos: 'left'})); }
+  if (view.prints) bigPrints().forEach(t => { const j = candleAt(all, t.t); if (j >= 0) sc.marks.push({t: all[j].t / 1000, price: t.px, dot: 2.5 + Math.min(4, Math.log10(Math.max(1, t.sz * t.px / 1e4))), color: t.buy ? '#3ddc97' : '#ff5c7a'}); });
+  if (view.bb && window.Regime) { const bb = Regime.bollinger(all); [['basis', '#f59e0b', 1.2], ['upper', '#fbbf24', .8], ['lower', '#fbbf24', .8]].forEach(([k, c, w]) => sc.paths.push({key: 'bb-' + k, values: bb.map(x => x ? x[k] : NaN), color: c, width: w, dash: [2, 3]})); }
+  Object.entries(IND).forEach(([id, ind]) => { if (id === 'og' && !view.osc) return; sc.panes.push({id, def: ind.def, data: ind.def.calc(all, ind.params, TA)}); });
+  return sc;
+}
+function renderLW(sc) {
+  C.setBars(sc.bars, sc.iv, sc.mode); C.setEMAs(sc.emas.map(e => e.values)); C.setVolume(sc.vol); C.clearLines();
+  sc.lines.forEach(l => C.priceLine(l.price, l.color, l.title, SCENE_LS[l.style], l.width)); C.setOverlays({boxes: sc.boxes, rays: sc.rays, marks: sc.marks}); C.setPaths(sc.paths);
+  const keep = new Set(sc.panes.map(p => p.id)); Object.keys(IND).forEach(id => { if (!keep.has(id)) C.removePane(id); }); sc.panes.forEach(p => { C.pane(p.id, p.def); C.setPane(p.id, p.data); });
+}
 function draw() {
-  const l = lv(cur.market); const all = cur.bars; if (!l || !all.length) return; const m = cur.market; const o = offset(m);
-  C.setBars(all, cur.iv, cur.mode); const closes = all.map(c => c.c); C.setEMAs([EMA(closes, 20), EMA(closes, 50), all.length >= 200 ? EMA(closes, 200) : null]); C.setVolume(view.vol);
-  C.clearLines();
-  [[l.pdh, 'PDH', '#5aa9ff'], [l.pdl, 'PDL', '#5aa9ff'], [l.midnight_open, 'midnight', '#8a94a6'], [l.week_open, 'week open', '#8a94a6']].forEach(([v, t, c]) => { if (v != null) C.priceLine(v, c, t, LineStyle.Dashed, 1); });
-  (T.state.positions || []).filter(p => p.market === m || p.symbol === m).forEach(p => [[p.entry, `${p.side} · ${p.venue}`, '#3ddc97', LineStyle.Solid], [p.tp, 'target', '#3ddc97', LineStyle.Dashed], [p.stop, 'stop', '#ff5c7a', LineStyle.Solid], [p.liq, 'liq', '#ff5c7a', LineStyle.Dotted]].forEach(([v, t, c, st]) => { if (v != null) C.priceLine(toFeed(v, m), c, t, st, 1); }));
-  const boxes = [], rays = [], marks = []; const closed = closedBars();
-  (T.state.watchlist || []).filter(w => w.market === m && w.zone_lo != null).forEach(w => boxes.push({p0: toFeed(w.zone_lo, m), p1: toFeed(w.zone_hi, m), fill: 'rgba(217,164,65,.12)', stroke: 'rgba(217,164,65,.55)', dash: [3, 3], label: `${w.direction} zone · ${w.status}`}));
-  if (view.zth && cur.zth.length && cur.iv !== '4h' && cur.iv !== '1d') cur.zth.forEach(z => { const st = {KEY: ['#d9a441', 2.2, [], 1], '5/5': ['#35c7dd', 1, [], .85], '3/5': ['#35c7dd', 1, [2, 3], .6], ghost: ['#9b8cff', 1, [2, 3], Math.max(.15, .45 * (1 - z.tags * .25))]}[z.type]; rays.push({t0: z.born / 1000, price: z.price, color: st[0], width: st[1], dash: st[2], alpha: st[3], label: z.type, labelPos: 'right', bold: z.type === 'KEY'}); });
-  if (view.bands && cur.zth.length && l.atr_1h) AutoLevels.atrBands(cur.zth.filter(z => z.type !== 'ghost'), l.atr_1h).forEach(b => boxes.push({p0: b.lo, p1: b.hi, fill: 'rgba(53,199,221,.06)'}));
-  if (view.fibs && window.Regime) { const imp = Regime.impulse(closed); if (imp) Object.entries(imp.fibs).forEach(([q, v]) => rays.push({t0: imp.startT / 1000, price: v, color: '#f2b94b', width: ['0.5', '0.618', '0.705'].includes(q) ? 1.2 : .8, dash: +q > 1 ? [2, 4] : [], alpha: .9, label: `${q} · ${px(v)}`})); }
-  if (view.rails && cur.m15 && IV_MS[cur.iv] <= 36e5) cur.m15.sessions.forEach((d, k) => { const a = k === 0 ? 1 : k === 1 ? .55 : .35; const dash = k === 0 ? [] : [5, 4]; if (d.fcr) { rays.push({t0: d.fcr.t / 1000, price: d.fcr.high, color: '#3ddc97', width: k === 0 ? 2 : 1, dash, alpha: a, label: 'FCR ▲ ' + d.day.slice(5)}); rays.push({t0: d.fcr.t / 1000, price: d.fcr.low, color: '#ff5c7a', width: k === 0 ? 2 : 1, dash, alpha: a, label: 'FCR ▼ ' + d.day.slice(5)}); } [[d.open930, '4/5 9:30 open'], [d.close1600, '4/5 16:00 close'], [d.close1700, '4/5 17:00 close'], [d.open1800, '4/5 18:00 open']].forEach(([s, t]) => { if (s) rays.push({t0: s.t / 1000, price: s.price, color: k === 0 ? '#089981' : '#35c7dd', width: 1, dash: [4, 3], alpha: a * .8, label: t + (k ? ' · ' + d.day.slice(5) : ''), labelPos: 'right'}); }); });
-  if (view.fvg && window.AutoLevels) AutoLevels.fvgs(closed, 0, 0).slice(-40).forEach(f => { const t1 = closed[Math.min(closed.length - 1, f.i + 5)]; boxes.push({t0: f.t / 1000, t1: t1 ? t1.t / 1000 : null, p0: f.bot, p1: f.top, fill: f.dir === 'bull' ? 'rgba(61,220,151,.14)' : 'rgba(255,92,122,.14)'}); });
-  if (view.marks && window.AutoLevels && cur.zth.length) { const tick = AutoLevels.TICKS[m] || Math.max(1e-6, closed[closed.length - 1].c * 1e-5); AutoLevels.patterns(closed, cur.zth, tick).forEach(p => marks.push({t: p.t / 1000, price: p.price, side: p.side, text: p.tags.join('·'), color: p.tags.includes('BRK') || p.tags.includes('RT') ? '#9b8cff' : p.tags.includes('R') ? '#ff5c7a' : p.tags.includes('B') ? '#3ddc97' : p.tags.includes('SFP') ? '#ff8fb1' : p.tags.includes('1-2-3') ? '#f2b94b' : '#35c7dd'})); }
-  if (view.gex) { const gx = gexFor(m); if (gx) gx.walls.forEach(w => rays.push({price: w.price, color: w.color, width: w.width, dash: w.dash, alpha: .9, label: w.label, labelPos: 'left'})); }
-  if (view.prints) bigPrints().forEach(t => { const j = candleAt(all, t.t); if (j >= 0) marks.push({t: all[j].t / 1000, price: t.px, dot: 2.5 + Math.min(4, Math.log10(Math.max(1, t.sz * t.px / 1e4))), color: t.buy ? '#3ddc97' : '#ff5c7a'}); });
-  C.setOverlays({boxes, rays, marks});
-  runIndicators();
-  $('#mkt-sub').textContent = `${l.feed} · ${cur.iv} · ${o ? 'MFP ≈ feed + ' + px(o) : 'no venue offset'} · ATR 1h ${px(l.atr_1h)} · ${l.bias_1h} 1h / ${l.bias_4h} 4h`;
-  renderLegend(); showOHLC(all[all.length - 1]);
+  const sc = buildScene(); if (!sc) return; const l = lv(cur.market); const o = offset(cur.market);
+  if (engine === 'svg' && SV) SV.setScene(sc); else renderLW(sc);
+  $('#mkt-sub').textContent = `${l.feed} · ${cur.iv} · ${o ? 'MFP ≈ feed + ' + px(o) : 'no venue offset'} · ATR 1h ${px(l.atr_1h)} · ${l.bias_1h} 1h / ${l.bias_4h} 4h · ${engine === 'svg' ? 'SVG engine' : 'TradingView engine'}`;
+  renderLegend(); showOHLC(sc.bars[sc.bars.length - 1]);
+}
+function applyEngine(e) {
+  engine = e === 'svg' ? 'svg' : 'lw'; try { localStorage.setItem('fv-engine', engine); } catch (x) {}
+  $('#chart').hidden = engine === 'svg'; $('#csvg').toggleAttribute('hidden', engine !== 'svg'); $('#cpane').toggleAttribute('hidden', engine !== 'svg');  // SVG nodes have no .hidden property
+  $$('#engine button').forEach(b => b.classList.toggle('on', b.dataset.eng === engine)); $('#tools').classList.toggle('off', engine === 'svg'); $('#tools').title = engine === 'svg' ? 'drawings live on the TradingView engine' : '';
+  if (engine === 'svg' && !SV) SV = createSvgChart($('#csvg'), $('#cpane'), {onHover: showOHLC});
+  if (cur.bars.length) draw();
 }
 const candleAt = (all, t) => { let lo = 0, hi = all.length - 1, j = -1; while (lo <= hi) { const k = (lo + hi) >> 1; if (all[k].t <= t) { j = k; lo = k + 1; } else hi = k - 1; } return j; };
 function gexFor(m) { if (!T.gex || !cur.bars.length) return null; const g = T.gex.markets.find(x => x.market === m); if (!g || !g.strikes.length) return null;
@@ -105,7 +124,7 @@ function gexFor(m) { if (!T.gex || !cur.bars.length) return null; const g = T.ge
 function bigPrints() { const l = lv(cur.market); if (!l || FLOW.feed !== l.feed) return []; const now = Date.now(); return FLOW.trades.filter(t => now - t.t < 15 * 60000).sort((a, b) => b.sz * b.px - a.sz * a.px).slice(0, 6); }
 function showOHLC(c) { if (!c) return; const o = offset(cur.market); $('#ohlc').innerHTML = `<span>${fmtET(c.t)}</span><span>O <b>${px(c.o)}</b></span><span>H <b>${px(c.h)}</b></span><span>L <b>${px(c.l)}</b></span><span>C <b class="${cls(c.c - c.o)}">${px(c.c)}</b></span><span>Δ <b class="${cls(c.c - c.o)}">${pct((c.c / c.o - 1) * 100)}</b></span>${c.v ? `<span>V <b>${c.v >= 1e6 ? (c.v / 1e6).toFixed(2) + 'M' : c.v >= 1e3 ? (c.v / 1e3).toFixed(1) + 'K' : c.v.toFixed(0)}</b></span>` : ''}${o ? `<span>MFP est. <b>${px(c.c + o)}</b></span>` : ''}`; }
 function renderLegend() {
-  const items = [['zth', 'Auto Levels', '#d9a441'], ['rails', 'session rails', '#089981'], ['fvg', 'fair value gaps', '#3ddc97'], ['marks', 'pattern marks', '#9b8cff'], ['fibs', 'fib ladder', '#f2b94b'], ['bands', 'ATR bands', '#35c7dd'], ['gex', 'gamma walls', '#ff5c7a'], ['prints', 'large prints', '#3ddc97'], ['vol', 'volume + profile', '#8a94a6'], ['osc', 'OG oscillator', '#2dd4bf']];
+  const items = [['zth', 'Auto Levels', '#d9a441'], ['rails', 'session rails', '#089981'], ['fvg', 'fair value gaps', '#3ddc97'], ['marks', 'pattern marks', '#9b8cff'], ['fibs', 'fib ladder', '#f2b94b'], ['bands', 'ATR bands', '#35c7dd'], ['bb', 'Bollinger', '#f59e0b'], ['gex', 'gamma walls', '#ff5c7a'], ['prints', 'large prints', '#3ddc97'], ['vol', 'volume + profile', '#8a94a6'], ['osc', 'OG oscillator', '#2dd4bf']];
   $('#legend').innerHTML = `<span><b>EMA</b> <span style="color:#35c7dd">20</span> <span style="color:#9b8cff">50</span> <span style="color:#ff8fb1">200</span></span>` + items.map(([k, t, c]) => `<span class="tog ${view[k] ? '' : 'off'}" data-v="${k}" style="color:${c}">${t}</span>`).join('');
   $$('#legend .tog').forEach(s => s.addEventListener('click', async () => { const k = s.dataset.v; view[k] = !view[k]; if (k === 'rails' && view.rails) await loadRails(); draw(); }));
 }
@@ -130,6 +149,7 @@ function renderTools() {
 }
 function setTool(t) { tool = C.TOOL_BY_ID[t] ? t : 'cursor'; C.drawings.temp = null; C.drawings.update(); $$('#tools button').forEach(b => b.classList.toggle('on', b.dataset.tool === tool)); $('#chart').style.cursor = tool === 'cursor' ? '' : 'crosshair'; }
 function onClick(p) {
+  if (engine === 'svg') return;
   if (tool === 'cursor') { if (!p.point) return; C.drawings.selected = C.drawings.hitTest(p.point.x, p.point.y); C.drawings.update(); return; }
   const def = C.TOOL_BY_ID[tool]; const pt = C.pointAt(p); if (!def || !pt) return; const d = C.drawings;
   if (!d.temp) { d.temp = {id: 'd' + Date.now().toString(36), type: tool, points: [pt]}; if (def.points > 1) d.temp.points.push({...pt}); }
@@ -198,11 +218,12 @@ function tabDesk() {
 /* ── chrome: timeframes, keys, command line, sheet ── */
 function wireChrome() {
   $$('#tfs button').forEach(b => b.addEventListener('click', () => selectMarket(cur.market, b.dataset.tf)));
+  $$('#engine button').forEach(b => b.addEventListener('click', () => applyEngine(b.dataset.eng)));
   $('#help-btn').addEventListener('click', () => sheet('Commands and keys', HELP)); $('#sheet-x').addEventListener('click', closeSheet); $('#sheet').addEventListener('click', (e) => { if (e.target === $('#sheet')) closeSheet(); });
   const H = history(); let hi = -1; const cmd = $('#cmd');
   cmd.addEventListener('keydown', (e) => { if (e.key === 'Enter') { run(cmd.value); H.push(cmd.value.trim()); hi = -1; cmd.value = ''; } else if (e.key === 'ArrowUp') { hi = Math.min(H.list.length - 1, hi + 1); cmd.value = H.list[hi] || ''; e.preventDefault(); } else if (e.key === 'ArrowDown') { hi = Math.max(-1, hi - 1); cmd.value = hi < 0 ? '' : H.list[hi]; e.preventDefault(); } else if (e.key === 'Escape') { cmd.value = ''; cmd.blur(); } });
   document.addEventListener('keydown', (e) => { if (e.target === cmd || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; if (e.key === '/') { e.preventDefault(); cmd.focus(); return; } if (e.key === '?') { sheet('Commands and keys', HELP); return; } if (e.key === 'Escape') { closeSheet(); setTool('cursor'); return; }
-    const tfk = {'1': '5m', '2': '15m', '3': '1h', '4': '4h', '5': '1d'}[e.key]; if (tfk) return selectMarket(cur.market, tfk); if (e.key === 'f') C.fit(); if (e.key === 'l') { cur.mode = cur.mode === 'line' ? 'candles' : 'line'; draw(); } if (e.key === 'v') { view.vol = !view.vol; draw(); } if (e.key === 'Delete' || e.key === 'Backspace') { const d = C.drawings; if (d.selected) { d.items = d.items.filter(x => x !== d.selected); d.selected = null; d.update(); saveDrawings(); } } });
+    const tfk = {'1': '5m', '2': '15m', '3': '1h', '4': '4h', '5': '1d'}[e.key]; if (tfk) return selectMarket(cur.market, tfk); if (e.key === 'f') { C.fit(); if (SV) SV.fit(); } if (e.key === 'l') { cur.mode = cur.mode === 'line' ? 'candles' : 'line'; draw(); } if (e.key === 'v') { view.vol = !view.vol; draw(); } if (e.key === 'Delete' || e.key === 'Backspace') { const d = C.drawings; if (d.selected) { d.items = d.items.filter(x => x !== d.selected); d.selected = null; d.update(); saveDrawings(); } } });
 }
 function run(text) {
   const names = T.levels.levels.map(l => l.market); const r = parse(text, names); const bar = $('.cmd'); const flash = (k) => { bar.classList.remove('ok', 'err'); void bar.offsetWidth; bar.classList.add(k); setTimeout(() => bar.classList.remove(k), 900); };
@@ -213,7 +234,8 @@ function run(text) {
   else if (v === 'theme') { const root = document.documentElement; const cur = root.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); root.dataset.theme = cur === 'light' ? 'dark' : 'light'; try { localStorage.setItem('fv-theme', root.dataset.theme); } catch (e) {} }
   else if (v === 'clear') { C.drawings.setItems([]); saveDrawings(); }
   else if (v === 'draw') setTool(r.arg || 'trend');
-  else if (v === 'fit') C.fit(); else if (v === 'follow') C.scrollToEnd();
+  else if (v === 'fit') { C.fit(); if (SV) SV.fit(); } else if (v === 'follow') { C.scrollToEnd(); if (SV) SV.follow(); }
+  else if (v === 'svg' || v === 'tradingview') applyEngine(v === 'svg' ? 'svg' : 'lw');
   else if (v === 'line' || v === 'candles') { cur.mode = v; draw(); } else if (v === 'vol') { view.vol = !view.vol; draw(); }
   else if (['levels', 'regime', 'flow', 'gamma', 'calc', 'desk'].includes(v)) showTab(v);
   if (r.market || r.tf) selectMarket(r.market || cur.market, r.tf || undefined); flash('ok');

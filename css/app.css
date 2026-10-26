@@ -12,7 +12,7 @@
 :root[data-theme="light"] { --bg: #f4f2ec; --panel: #ffffff; --panel-2: #f7f5ef; --line: #e3dfd4; --line-2: #d2ccbd; --text: #1a1d23; --muted: #5f6673; --dim: #8b919c; --brass: #a9771a; --brass-2: rgba(169,119,26,.12); }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 400 var(--t-base)/1.45 var(--sans); display: grid; grid-template-rows: var(--top-h) 1fr var(--cmd-h); overflow: hidden; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 400 var(--t-base)/1.45 var(--sans); display: grid; grid-template-rows: var(--top-h) minmax(0, 1fr) var(--cmd-h); overflow: hidden; }
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; border-radius: 4px; }
@@ -41,8 +41,13 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .work { display: grid; grid-template-columns: 38px minmax(0, 1fr); min-height: 0; }
 .tools { border-right: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; align-items: center; padding: .4rem 0; gap: .15rem; overflow-y: auto; }
 .tools button { width: 30px; height: 30px; border-radius: 6px; color: var(--muted); display: grid; place-items: center; } .tools button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; } .tools button:hover { color: var(--text); background: var(--panel-2); } .tools button.on { color: var(--brass); background: var(--brass-2); } .tools hr { width: 18px; border: 0; border-top: 1px solid var(--line-2); margin: .3rem 0; }
-.stage { position: relative; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
-#chart { min-height: 0; }
+.stage { position: relative; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; }
+.plot { position: relative; min-height: 0; } #chart { height: 100%; min-height: 0; } #chart[hidden] { display: none; }
+#csvg { width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; user-select: none; -webkit-user-select: none; } #csvg.drag { cursor: grabbing; } #csvg[hidden], #cpane[hidden] { display: none; }
+#cpane { width: 100%; height: 110px; display: block; border-top: 1px solid var(--line); }
+.cx { font: 10px var(--mono); fill: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; } .seg button { padding: .18rem .55rem; font-size: var(--t-xs); color: var(--muted); } .seg button + button { border-left: 1px solid var(--line-2); } .seg button.on { color: var(--text); background: var(--brass-2); }
+.tools.off { opacity: .35; pointer-events: none; }
 .legend { display: flex; flex-wrap: wrap; gap: .25rem .7rem; padding: .35rem .7rem 0; font-size: var(--t-xs); color: var(--muted); font-family: var(--mono); min-height: 1.4rem; } .legend b { color: var(--text); font-weight: 500; } .legend .tog { cursor: pointer; border-bottom: 1px dotted var(--line-2); } .legend .tog.off { opacity: .4; text-decoration: line-through; }
 .ohlc { display: flex; gap: .9rem; padding: .25rem .7rem .3rem; font-family: var(--mono); font-size: var(--t-xs); color: var(--muted); border-top: 1px solid var(--line); flex-wrap: wrap; } .ohlc b { color: var(--text); font-weight: 500; }
 

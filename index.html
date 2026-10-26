@@ -15,6 +15,7 @@
     <a class="mark" href="./" title="FortunaVision"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#d9a441"/><path d="M9 20l5-8 4 5 5-9" stroke="#0b0f14" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>FortunaVision</a>
     <div class="title"><b id="mkt">—</b><span id="mkt-sub"></span></div>
     <div class="tfs" id="tfs" role="group" aria-label="timeframe"><button data-tf="5m">5m</button><button data-tf="15m">15m</button><button data-tf="1h" class="on">1h</button><button data-tf="4h">4h</button><button data-tf="1d">1d</button></div>
+    <div class="seg" id="engine" role="group" aria-label="chart engine"><button type="button" data-eng="lw" class="on" title="TradingView's open-source Lightweight Charts renderer">TradingView</button><button type="button" data-eng="svg" title="Fortuna's own SVG renderer, the one its background analysis draws with">SVG</button></div>
     <div class="sp"></div>
     <span class="status" id="status"><i></i> loading</span>
     <span class="clock" id="clock"></span>
@@ -28,7 +29,8 @@
       <div class="tools" id="tools" role="toolbar" aria-label="drawing tools"></div>
       <div class="stage">
         <div class="legend" id="legend"></div>
-        <div id="chart"></div>
+        <div class="plot"><div id="chart"></div><svg id="csvg" hidden role="img" aria-label="price chart, SVG engine"></svg></div>
+        <svg id="cpane" hidden role="img" aria-label="indicator pane, SVG engine"></svg>
         <div class="ohlc" id="ohlc"></div>
       </div>
     </section>
