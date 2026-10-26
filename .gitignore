@@ -1,0 +1,19 @@
+# secrets — never, in any form
+.env
+.env.*
+*.secret
+*.key
+*.pem
+**/credentials*.json
+**/keystore*
+**/mnemonic*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# local scratch
+tmp/
+*.log
