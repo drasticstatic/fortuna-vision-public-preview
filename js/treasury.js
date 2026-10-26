@@ -70,10 +70,12 @@ async function tabHoldings() {
   $('#h-add').addEventListener('click', () => { const a = $('#h-a').value.trim(), q = parseFloat($('#h-q').value); if (!a || !(q > 0)) return; const h = holdings(); h.push({asset: a, qty: q, note: $('#h-n').value.trim()}); saveHoldings(h); tabHoldings(); });
   $$('[data-del]', el).forEach(b => b.addEventListener('click', () => { const h = holdings(); h.splice(+b.dataset.del, 1); saveHoldings(h); tabHoldings(); }));
 }
-function tabDesk() {
+async function tabDesk() {
   const el = $('#tab-tdesk'); if (!el) return; const c = S.chains ? S.chains.find(x => x.name === S.chain) : null;
+  let lane = '<p>live snapshot unavailable</p>'; try { const d = await get('https://drasticstatic.github.io/trading-bot-arbitrage-public/edge/latest.json'); const e = d.edge || {}, pr = e.progress || {}, best = e.best || {}; lane = `<dl class="kv"><dt>study</dt><dd>${(pr.elapsedHours || 0).toFixed(1)} h of ${pr.targetDays || 7} d</dd><dt>simulated · cleared costs</dt><dd>${e.simulated ?? 0} · ${e.cleared ?? 0}</dd><dt>would have fired</dt><dd>${e.wouldFire ?? 0}</dd>${best.pair ? `<dt>best edge</dt><dd>${esc(best.pair)} · net ${best.netSpreadPct != null ? best.netSpreadPct.toFixed(3) + '%' : '—'}${best.clears ? ' · clears costs' : ' · below costs'}</dd>` : ''}</dl>`; } catch (e) {}
   el.innerHTML = `<h4>Treasury desk</h4><p>The same workstation, pointed at a treasury: where value sits across chains, what a stablecoin reserve can earn, how the supply of dollars on-chain is moving, and what the treasury itself holds. Built for the DAO and non-profit treasuries this terminal will serve: a yield-bearing reserve read in public, with every number traceable to its source.</p>
     <dl class="kv"><dt>chain in view</dt><dd>${esc(S.chain)}</dd><dt>value locked</dt><dd>${big(c ? c.tvl : null)}</dd><dt>chains tracked</dt><dd>${S.chains ? S.chains.length : '—'}</dd></dl>
     <h4>Sources</h4><p>DeFiLlama (chains, TVL history, yields, stablecoins), CoinGecko (prices). No keys, no accounts. Next adapters: wallet and Safe balances by public address, Fed and Treasury rates, CFTC positioning, and the DEX-arb lane's results feed.</p>
+    <h4>DEX-arb lane · results only</h4>${lane}<p>The arbitrage bot's public snapshot: results, never the method.</p>
     <h4>Commands</h4><p><code>treasury</code> opens this mode · <code>markets</code> returns to the trading workstation · click a chain in the rail · <code>svg</code> / <code>tradingview</code> still pick the chart engine.</p>`;
 }
