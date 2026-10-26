@@ -21,6 +21,11 @@ const cur = {market: null, iv: '1h', bars: [], h1: null, m15: null, mode: 'candl
 const view = {vol: true, zth: true, rails: false, fvg: false, marks: false, fibs: false, gex: true, prints: true, osc: true, bands: false, bb: false};
 const FLOW = {feed: null, trades: [], book: null, stream: null, timer: null};
 let USER_LINES = [];  // planned orders drawn on the chart (ladder, calc), per session
+/* price alerts: kept in the browser, checked against live mids every 30 s, drawn on the chart */
+function alerts() { try { return JSON.parse(localStorage.getItem('fv-alerts') || '[]'); } catch (e) { return []; } }
+function saveAlerts(a) { try { localStorage.setItem('fv-alerts', JSON.stringify(a)); } catch (e) {} }
+function toast(text, kind = 'ok') { const bar = $('.cmd'); $('#cmd-hint').textContent = text; bar.classList.remove('ok', 'err'); void bar.offsetWidth; bar.classList.add(kind); setTimeout(() => bar.classList.remove(kind), 2500); }
+function checkAlerts() { const A = alerts(); if (!A.length) return; const keep = []; A.forEach(a => { const l = lv(a.market); const p = l ? (MIDS[l.feed] ?? l.last) : null; if (p == null) return keep.push(a); const hit = a.dir === 'above' ? p >= a.price : p <= a.price; if (!hit) return keep.push(a); const msg = `${a.market} ${a.dir === 'above' ? 'rose above' : 'fell below'} ${px(a.price)} (now ${px(p)})`; toast('alert: ' + msg, 'err'); document.title = '● ' + msg; try { if (Notification.permission === 'granted') new Notification('FortunaVision alert', {body: msg}); } catch (e) {} }); if (keep.length !== A.length) { saveAlerts(keep); draw(); } }
 let C = null, SV = null, engine = 'lw', tool = 'cursor', tab = 'levels', MODE = 'markets'; const IND = {};
 const MARKET_TABS = [{id: 'levels', label: 'Levels'}, {id: 'regime', label: 'Regime'}, {id: 'flow', label: 'Flow'}, {id: 'gamma', label: 'Gamma'}, {id: 'calc', label: 'Calc'}, {id: 'desk', label: 'Desk'}];
 try { if (localStorage.getItem('fv-engine') === 'svg') engine = 'svg'; } catch (e) {}
@@ -40,7 +45,7 @@ async function boot() {
   const qt = new URLSearchParams(location.search).get('tf'); if (qt && IV_MS[qt]) cur.iv = qt;
   C = createChart($('#chart')); C.onCrosshair(onCrosshair); C.onClick(onClick);
   renderRail(); wireChrome(); renderTools(); renderTabs(); clock(); setInterval(clock, 1000); applyEngine(engine);
-  try { MIDS = await mids(); } catch (e) {} setInterval(async () => { try { MIDS = await mids(); if (MODE === 'markets') renderRail(); } catch (e) {} }, 30000);
+  try { MIDS = await mids(); } catch (e) {} setInterval(async () => { try { MIDS = await mids(); if (MODE === 'markets') renderRail(); checkAlerts(); } catch (e) {} }, 30000);
   setInterval(async () => { try { const fresh = await loadTerminal(); const changed = fresh.levels.asof !== T.levels.asof; Object.assign(T, fresh); if (changed && MODE === 'markets') { status('ok', `data ${fmtET(T.levels.asof)} ET`); renderRail(); renderTab(); } } catch (e) {} }, 120000);
   await loadIndicator('og', 'og-oscillator.js');
   await selectMarket(cur.market, cur.iv, true);
@@ -95,6 +100,7 @@ function buildScene() {
   if (view.prints) bigPrints().forEach(t => { const j = candleAt(all, t.t); if (j >= 0) sc.marks.push({t: all[j].t / 1000, price: t.px, dot: 2.5 + Math.min(4, Math.log10(Math.max(1, t.sz * t.px / 1e4))), color: t.buy ? '#3ddc97' : '#ff5c7a'}); });
   if (view.bb && window.Regime) { const bb = Regime.bollinger(all); [['basis', '#f59e0b', 1.2], ['upper', '#fbbf24', .8], ['lower', '#fbbf24', .8]].forEach(([k, c, w]) => sc.paths.push({key: 'bb-' + k, values: bb.map(x => x ? x[k] : NaN), color: c, width: w, dash: [2, 3]})); }
   USER_LINES.filter(u => u.market === m).forEach(u => sc.lines.push({price: u.price, color: u.color, title: u.title, style: u.style || 'dashed', width: u.width || 1, side: 'l'}));
+  alerts().filter(a => a.market === m).forEach(a => sc.lines.push({price: a.price, color: '#f2b94b', title: `alert ${a.dir === 'above' ? '▲' : '▼'}`, style: 'dotted', width: 1, side: 'l'}));
   Object.entries(IND).forEach(([id, ind]) => { if (id === 'og' && !view.osc) return; sc.panes.push({id, def: ind.def, data: ind.def.calc(all, ind.params, TA)}); });
   return sc;
 }
@@ -257,6 +263,10 @@ function run(text) {
   else if (v === 'svg' || v === 'tradingview') applyEngine(v === 'svg' ? 'svg' : 'lw');
   else if (v === 'line' || v === 'candles') { cur.mode = v; draw(); } else if (v === 'vol') { view.vol = !view.vol; draw(); }
   else if (v === 'treasury' || v === 'markets') { setMode(v); return flash('ok'); }
+  else if (v === 'alert') { const m = r.market || cur.market; const l = lv(m); if (!l || !(r.num > 0)) { $('#cmd-hint').textContent = 'alert needs a price: alert 4020 · alert above 4020'; return flash('err'); } const now = MIDS[l.feed] ?? l.last; const dir = r.dir || (r.num >= now ? 'above' : 'below'); const A = alerts(); A.push({market: m, price: r.num, dir, set: Date.now()}); saveAlerts(A); toast(`alert set: ${m} ${dir} ${px(r.num)} (now ${px(now)})`); if (!r.market) draw(); if (Notification && Notification.permission === 'default') { try { Notification.requestPermission(); } catch (e) {} } return; }
+  else if (v === 'alerts') { const A = alerts(); sheet('Price alerts', A.length ? `<table class="tb"><tr><th>market</th><th class="n">price</th><th>direction</th><th>set</th></tr>${A.map(a => `<tr><td>${esc(a.market)}</td><td class="n">${px(a.price)}</td><td>${a.dir}</td><td>${fmtET(a.set)}</td></tr>`).join('')}</table><p>Checked every 30 seconds while the page is open; each fires once, then clears. <code>unalert</code> clears the current market's.</p>` : '<p>No alerts. Set one with <code>alert 4020</code> or <code>alert above 4020</code>.</p>'); return flash('ok'); }
+  else if (v === 'unalert') { saveAlerts(alerts().filter(a => a.market !== (r.market || cur.market))); toast('alerts cleared for ' + (r.market || cur.market)); draw(); return; }
+  else if (v === 'notify') { try { Notification.requestPermission().then(p => toast('notifications ' + p)); } catch (e) { toast('notifications unavailable here', 'err'); } return; }
   else if (MODE === 'treasury' && ['yields', 'stables', 'holdings'].includes(v)) showTab(v); else if (MODE === 'treasury' && v === 'desk') showTab('tdesk');
   else if (['levels', 'regime', 'flow', 'gamma', 'calc', 'desk'].includes(v)) showTab(v);
   if (r.market || r.tf) { if (MODE === 'treasury') setMode('markets').then(() => selectMarket(r.market || cur.market, r.tf || undefined)); else selectMarket(r.market || cur.market, r.tf || undefined); } flash('ok');

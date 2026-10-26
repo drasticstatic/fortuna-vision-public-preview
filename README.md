@@ -45,6 +45,10 @@ An indicator is one JavaScript module in `indicators/` with `inputs`, `outputs` 
 
 Type a market, a timeframe, a verb, in any order: `gold 15m`, `btc gamma`, `es levels`, `draw fib`, `clear`, `theme`, `help`. `/` focuses it from anywhere; `1`–`5` switch timeframes; `f` fits; `l` toggles line and candles; `v` toggles volume; `Delete` removes the selected drawing; `?` opens the help card.
 
+## Alerts and plans
+
+`alert 4020` or `alert above 4020` sets a price alert on the market in view (kept in the browser, checked against live mids every 30 seconds, drawn on the chart, fired once as a desktop notification or a flash on the command line); `alerts` lists them, `unalert` clears the market's, `notify` asks the browser for permission. The Calc tab sizes a position from the stop and builds a ladder (entry plus up to five limits, generic DCA math: the entry is sized so the whole ladder loses exactly the risk if every leg fills and the stop hits) and draws the planned orders on the chart.
+
 ## The proprietary boundary
 
 The coaching strategies Fortuna trades (ZTH, Inevitrade, STB) are their authors'. FortunaVision computes generic measures (levels, regime, alignment, fibs, money flow, gamma, flow) and shows whether a read is *eligible* per the private scanner, never the card rules, ladder defaults or gates. Christopher's own Auto Levels indicator is his to share, and it is.
