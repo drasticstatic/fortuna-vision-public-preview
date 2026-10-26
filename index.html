@@ -12,6 +12,7 @@
 </head>
 <body>
   <header class="top">
+    <div class="seg" id="mode" role="group" aria-label="mode"><button type="button" data-mode="markets" class="on" title="the trading workstation">Markets</button><button type="button" data-mode="treasury" title="the treasury workstation: chains, yields, stablecoins, holdings">Treasury</button></div>
     <a class="mark" href="./" title="FortunaVision"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#d9a441"/><path d="M9 20l5-8 4 5 5-9" stroke="#0b0f14" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>FortunaVision</a>
     <div class="title"><b id="mkt">—</b><span id="mkt-sub"></span></div>
     <div class="tfs" id="tfs" role="group" aria-label="timeframe"><button data-tf="5m">5m</button><button data-tf="15m">15m</button><button data-tf="1h" class="on">1h</button><button data-tf="4h">4h</button><button data-tf="1d">1d</button></div>
@@ -36,15 +37,7 @@
     </section>
 
     <aside class="inspect">
-      <nav class="tabs" id="tabs" role="tablist">
-        <button role="tab" data-tab="levels" class="on">Levels</button><button role="tab" data-tab="regime">Regime</button><button role="tab" data-tab="flow">Flow</button><button role="tab" data-tab="gamma">Gamma</button><button role="tab" data-tab="calc">Calc</button><button role="tab" data-tab="desk">Desk</button>
-      </nav>
-      <div class="tab" id="tab-levels"></div>
-      <div class="tab" id="tab-regime" hidden></div>
-      <div class="tab" id="tab-flow" hidden></div>
-      <div class="tab" id="tab-gamma" hidden></div>
-      <div class="tab" id="tab-calc" hidden></div>
-      <div class="tab" id="tab-desk" hidden></div>
+      <nav class="tabs" id="tabs" role="tablist"></nav>
     </aside>
   </main>
 

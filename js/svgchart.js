@@ -2,7 +2,7 @@
  * It renders a *scene* (bars, EMAs, boxes, rays, marks, price lines, extra paths, indicator panes) that app.js builds once for either engine.
  * Interactions: scroll to zoom, drag to pan, drag the price axis to scale, drag the time axis to zoom, double-click to fit. */
 const NY = 'America/New_York';
-const px = (v) => v == null || !Number.isFinite(+v) ? '—' : Number(v).toLocaleString('en-US', {maximumFractionDigits: v >= 1000 ? 1 : v >= 100 ? 2 : v >= 10 ? 3 : 4, minimumFractionDigits: 0});
+const px = (v) => v == null || !Number.isFinite(+v) ? '—' : Math.abs(v) >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : Number(v).toLocaleString('en-US', {maximumFractionDigits: v >= 1000 ? 1 : v >= 100 ? 2 : v >= 10 ? 3 : 4, minimumFractionDigits: 0});
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const VIEW_N = {'5m': 120, '15m': 120, '1h': 100, '4h': 120, '1d': 120};
 const IVS = {'5m': 3e5, '15m': 9e5, '1h': 36e5, '4h': 144e5, '1d': 864e5};

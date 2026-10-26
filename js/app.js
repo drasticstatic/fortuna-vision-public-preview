@@ -4,6 +4,7 @@ import {loadTerminal, candles, mids, book, tradeStream, IV_MS} from './data.js';
 import {createChart, LineStyle, EMA} from './chart.js';
 import {createSvgChart} from './svgchart.js';
 import {parse, history, HELP} from './command.js';
+import * as TR from './treasury.js';
 
 const $ = (s, r = document) => r.querySelector(s); const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
@@ -19,7 +20,8 @@ const T = {levels: null, state: null, signals: null, gex: null, base: ''}; let M
 const cur = {market: null, iv: '1h', bars: [], h1: null, m15: null, mode: 'candles', zth: []};
 const view = {vol: true, zth: true, rails: false, fvg: false, marks: false, fibs: false, gex: true, prints: true, osc: true, bands: false, bb: false};
 const FLOW = {feed: null, trades: [], book: null, stream: null, timer: null};
-let C = null, SV = null, engine = 'lw', tool = 'cursor', tab = 'levels'; const IND = {};
+let C = null, SV = null, engine = 'lw', tool = 'cursor', tab = 'levels', MODE = 'markets'; const IND = {};
+const MARKET_TABS = [{id: 'levels', label: 'Levels'}, {id: 'regime', label: 'Regime'}, {id: 'flow', label: 'Flow'}, {id: 'gamma', label: 'Gamma'}, {id: 'calc', label: 'Calc'}, {id: 'desk', label: 'Desk'}];
 try { if (localStorage.getItem('fv-engine') === 'svg') engine = 'svg'; } catch (e) {}
 const lv = (m) => T.levels && T.levels.levels.find(x => x.market === m);
 const sig = (m) => T.signals && T.signals.feeds ? T.signals.feeds[m] : null;
@@ -37,8 +39,8 @@ async function boot() {
   const qt = new URLSearchParams(location.search).get('tf'); if (qt && IV_MS[qt]) cur.iv = qt;
   C = createChart($('#chart')); C.onCrosshair(onCrosshair); C.onClick(onClick);
   renderRail(); wireChrome(); renderTools(); renderTabs(); clock(); setInterval(clock, 1000); applyEngine(engine);
-  try { MIDS = await mids(); } catch (e) {} setInterval(async () => { try { MIDS = await mids(); renderRail(); } catch (e) {} }, 30000);
-  setInterval(async () => { try { const fresh = await loadTerminal(); const changed = fresh.levels.asof !== T.levels.asof; Object.assign(T, fresh); if (changed) { status('ok', `data ${fmtET(T.levels.asof)} ET`); renderRail(); renderTab(); } } catch (e) {} }, 120000);
+  try { MIDS = await mids(); } catch (e) {} setInterval(async () => { try { MIDS = await mids(); if (MODE === 'markets') renderRail(); } catch (e) {} }, 30000);
+  setInterval(async () => { try { const fresh = await loadTerminal(); const changed = fresh.levels.asof !== T.levels.asof; Object.assign(T, fresh); if (changed && MODE === 'markets') { status('ok', `data ${fmtET(T.levels.asof)} ET`); renderRail(); renderTab(); } } catch (e) {} }, 120000);
   await loadIndicator('og', 'og-oscillator.js');
   await selectMarket(cur.market, cur.iv, true);
 }
@@ -105,6 +107,12 @@ function draw() {
   $('#mkt-sub').textContent = `${l.feed} · ${cur.iv} · ${o ? 'MFP ≈ feed + ' + px(o) : 'no venue offset'} · ATR 1h ${px(l.atr_1h)} · ${l.bias_1h} 1h / ${l.bias_4h} 4h · ${engine === 'svg' ? 'SVG engine' : 'TradingView engine'}`;
   renderLegend(); showOHLC(sc.bars[sc.bars.length - 1]);
 }
+function drawScene(sc) { if (engine === 'svg' && SV) SV.setScene(sc); else renderLW(sc); showOHLC(sc.bars[sc.bars.length - 1]); if (engine !== 'svg') C.fit(); }
+async function setMode(m) {
+  if (m === MODE) return; MODE = m; $$('#mode button').forEach(b => b.classList.toggle('on', b.dataset.mode === m)); $('#tfs').style.visibility = m === 'treasury' ? 'hidden' : ''; $('#tools').classList.toggle('off', m === 'treasury' || engine === 'svg');
+  if (m === 'treasury') { if (FLOW.stream) { FLOW.stream.close(); FLOW.stream = null; FLOW.feed = null; clearInterval(FLOW.timer); } renderTabs(TR.TABS); $('#cmd').placeholder = 'treasury: click a chain · yields · stables · holdings · markets to go back'; await TR.enter({drawScene, EMA}); }
+  else { TR.leave(); renderTabs(MARKET_TABS); $('#cmd').placeholder = 'type a market or a command: gold 15m · btc gex · es levels · draw fib · help'; renderRail(); await selectMarket(cur.market, cur.iv, true); }
+}
 function applyEngine(e) {
   engine = e === 'svg' ? 'svg' : 'lw'; try { localStorage.setItem('fv-engine', engine); } catch (x) {}
   $('#chart').hidden = engine === 'svg'; $('#csvg').toggleAttribute('hidden', engine !== 'svg'); $('#cpane').toggleAttribute('hidden', engine !== 'svg');  // SVG nodes have no .hidden property
@@ -160,9 +168,9 @@ function onClick(p) {
 }
 
 /* ── inspector tabs ── */
-function renderTabs() { $$('#tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab))); }
+function renderTabs(list = MARKET_TABS) { $('#tabs').innerHTML = list.map((t, i) => `<button role="tab" data-tab="${t.id}" class="${i ? '' : 'on'}">${t.label}</button>`).join(''); $$('.inspect .tab').forEach(x => x.remove()); list.forEach((t, i) => { const d = document.createElement('div'); d.className = 'tab'; d.id = 'tab-' + t.id; d.hidden = !!i; $('.inspect').appendChild(d); }); tab = list[0].id; $$('#tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab))); }
 function showTab(t) { tab = t; $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t)); $$('.tab').forEach(x => x.hidden = x.id !== 'tab-' + t); renderTab(); }
-function renderTab() { ({levels: tabLevels, regime: tabRegime, flow: tabFlow, gamma: tabGamma, calc: tabCalc, desk: tabDesk}[tab] || (() => {}))(); }
+function renderTab() { if (MODE === 'treasury') return TR.renderTab(tab); ({levels: tabLevels, regime: tabRegime, flow: tabFlow, gamma: tabGamma, calc: tabCalc, desk: tabDesk}[tab] || (() => {}))(); }
 function tabLevels() {
   const l = lv(cur.market); if (!l) return; const last = MIDS[l.feed] ?? l.last; const atr = l.atr_1h || 1;
   const rows = cur.zth.filter(z => z.type !== 'ghost').sort((a, b) => b.price - a.price);
@@ -219,10 +227,12 @@ function tabDesk() {
 function wireChrome() {
   $$('#tfs button').forEach(b => b.addEventListener('click', () => selectMarket(cur.market, b.dataset.tf)));
   $$('#engine button').forEach(b => b.addEventListener('click', () => applyEngine(b.dataset.eng)));
+  $$('#mode button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
   $('#help-btn').addEventListener('click', () => sheet('Commands and keys', HELP)); $('#sheet-x').addEventListener('click', closeSheet); $('#sheet').addEventListener('click', (e) => { if (e.target === $('#sheet')) closeSheet(); });
   const H = history(); let hi = -1; const cmd = $('#cmd');
   cmd.addEventListener('keydown', (e) => { if (e.key === 'Enter') { run(cmd.value); H.push(cmd.value.trim()); hi = -1; cmd.value = ''; } else if (e.key === 'ArrowUp') { hi = Math.min(H.list.length - 1, hi + 1); cmd.value = H.list[hi] || ''; e.preventDefault(); } else if (e.key === 'ArrowDown') { hi = Math.max(-1, hi - 1); cmd.value = hi < 0 ? '' : H.list[hi]; e.preventDefault(); } else if (e.key === 'Escape') { cmd.value = ''; cmd.blur(); } });
   document.addEventListener('keydown', (e) => { if (e.target === cmd || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return; if (e.key === '/') { e.preventDefault(); cmd.focus(); return; } if (e.key === '?') { sheet('Commands and keys', HELP); return; } if (e.key === 'Escape') { closeSheet(); setTool('cursor'); return; }
+    if (MODE === 'treasury') return;
     const tfk = {'1': '5m', '2': '15m', '3': '1h', '4': '4h', '5': '1d'}[e.key]; if (tfk) return selectMarket(cur.market, tfk); if (e.key === 'f') { C.fit(); if (SV) SV.fit(); } if (e.key === 'l') { cur.mode = cur.mode === 'line' ? 'candles' : 'line'; draw(); } if (e.key === 'v') { view.vol = !view.vol; draw(); } if (e.key === 'Delete' || e.key === 'Backspace') { const d = C.drawings; if (d.selected) { d.items = d.items.filter(x => x !== d.selected); d.selected = null; d.update(); saveDrawings(); } } });
 }
 function run(text) {
@@ -237,8 +247,10 @@ function run(text) {
   else if (v === 'fit') { C.fit(); if (SV) SV.fit(); } else if (v === 'follow') { C.scrollToEnd(); if (SV) SV.follow(); }
   else if (v === 'svg' || v === 'tradingview') applyEngine(v === 'svg' ? 'svg' : 'lw');
   else if (v === 'line' || v === 'candles') { cur.mode = v; draw(); } else if (v === 'vol') { view.vol = !view.vol; draw(); }
+  else if (v === 'treasury' || v === 'markets') { setMode(v); return flash('ok'); }
+  else if (MODE === 'treasury' && ['yields', 'stables', 'holdings'].includes(v)) showTab(v); else if (MODE === 'treasury' && v === 'desk') showTab('tdesk');
   else if (['levels', 'regime', 'flow', 'gamma', 'calc', 'desk'].includes(v)) showTab(v);
-  if (r.market || r.tf) selectMarket(r.market || cur.market, r.tf || undefined); flash('ok');
+  if (r.market || r.tf) { if (MODE === 'treasury') setMode('markets').then(() => selectMarket(r.market || cur.market, r.tf || undefined)); else selectMarket(r.market || cur.market, r.tf || undefined); } flash('ok');
 }
 function sheet(title, html) { $('#sheet-title').textContent = title; $('#sheet-body').innerHTML = html; $('#sheet').hidden = false; }
 function closeSheet() { $('#sheet').hidden = true; }
