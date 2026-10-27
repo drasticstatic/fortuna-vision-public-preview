@@ -8,7 +8,7 @@ import * as TR from './treasury.js';
 
 const $ = (s, r = document) => r.querySelector(s); const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
-const px = (v, d) => v == null || !Number.isFinite(+v) ? '—' : Number(v).toLocaleString('en-US', {maximumFractionDigits: d ?? (v >= 1000 ? 1 : v >= 100 ? 2 : v >= 10 ? 3 : 4), minimumFractionDigits: 0});
+const px = (v, d) => v == null || !Number.isFinite(+v) ? '—' : Math.abs(v) >= 1e12 ? (v / 1e12).toFixed(2) + 'T' : Math.abs(v) >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : Number(v).toLocaleString('en-US', {maximumFractionDigits: d ?? (v >= 1000 ? 1 : v >= 100 ? 2 : v >= 10 ? 3 : 4), minimumFractionDigits: 0});
 const pct = (v, d = 2) => v == null ? '—' : (v > 0 ? '+' : '') + Number(v).toFixed(d) + '%';
 const usd = (v) => v == null ? '—' : (v < 0 ? '−' : '') + '$' + Math.abs(v).toLocaleString('en-US', {maximumFractionDigits: 0});
 const usdk = (v) => v >= 1e6 ? '$' + (v / 1e6).toFixed(2) + 'M' : '$' + (v / 1e3).toFixed(0) + 'K';
