@@ -64,11 +64,11 @@ An indicator is one JavaScript module in `indicators/` with `inputs`, `outputs` 
 | ⛓️ **Rail + chart** | chains by value locked; a chain's TVL history with EMA 30 / 90 | DeFiLlama |
 | 🌾 **Yields** | stablecoin pools by APY on the chain in view and across chains (loaded on demand) | DeFiLlama |
 | 💵 **Stables** | USD stablecoin supply, 7d / 30d change, peg health | DeFiLlama |
-| 🧺 **Holdings** | a ledger kept in the browser, priced live | CoinGecko |
+| 🧺 **Holdings** | wallets by **public address** (an EVM address read on seven chains for native and blue-chip tokens, Solana, Bitcoin), plus a ledger for what is off chain; allocation by asset and by chain, priced live | public RPCs, Blockstream, CoinGecko |
 | 🔁 **DEX arb** | the Arbitrum arbitrage lane, results only, never the method | the lane's public snapshot |
 | 🗒️ **Desk** | what this mode is for, sources, commands | — |
 
-This is the seed of the treasury terminal for the organisations whose treasuries Christopher manages: every useful chain brought into one read, market and macro data beside the holdings, so a reserve can be balanced to bless others while capitalising on what the market offers. Wallet and Safe balances by public address, Fed and Treasury rates and CFTC positioning are the next adapters (the last three through a small proxy, since those sources block browsers).
+This is the seed of the treasury terminal for the organisations whose treasuries Christopher manages: every useful chain brought into one read, market and macro data beside the holdings, so a reserve can be balanced to bless others while capitalising on what the market offers. Wallet balances by public address are in; Safe owners and queues, Fed and Treasury rates and CFTC positioning are the next adapters (the last three through a small proxy, since those sources block browsers). Addresses you paste stay in your browser.
 
 ## 📡 Every number has a source
 
@@ -77,7 +77,8 @@ This is the seed of the treasury terminal for the organisations whose treasuries
 | Fortuna Terminal data (GitHub Pages, CORS open) | levels, watchlist, positions, check-ins, scanner read, gamma snapshot | rail, Desk, Levels, Regime, Gamma, chart overlays |
 | Hyperliquid public API | candles (5m–1d), mids, order book, live trades websocket | chart, Flow, large prints, alerts |
 | DeFiLlama (api / yields / stablecoins) | chains and TVL history, pools and APY, stablecoin supply | Treasury mode |
-| CoinGecko | global market cap, top assets, prices for the holdings ledger | Treasury mode |
+| CoinGecko | global market cap, top assets, prices for holdings | Treasury mode |
+| Public JSON-RPC nodes (publicnode, the chains' own endpoints) and Blockstream | balances by public address: Ethereum, Arbitrum, Base, Optimism, Polygon, Avalanche, BNB Chain, Solana, Bitcoin | Holdings tab |
 | The DEX-arb lane's public snapshot | study progress, simulated and cleared edges | DEX arb tab, Desk |
 
 No keys, no accounts, nothing leaves the page except the requests above.
@@ -99,4 +100,4 @@ No keys, no accounts, nothing leaves the page except the requests above.
 
 ## 🧭 Roadmap
 
-Phase 1 (shipped Oct 26, 2026): the workstation shell, two chart engines, overlays, drawings, the indicator contract, Flow, Gamma, Calc with the ladder planner, Desk, Treasury mode, price alerts, the command line. Next: wallet and Safe balances by public address, the macro adapters through a proxy, bar replay and alerts on drawings (references in quant-terminal), a mobile pass, and the Fortuna Terminal's migration here after the October competition closes.
+Phase 1 (shipped Oct 26, 2026): the workstation shell, two chart engines, overlays, drawings, the indicator contract, Flow, Gamma, Calc with the ladder planner, Desk, Treasury mode, price alerts, the command line. Oct 27: wallets by public address, a mobile pass. Next: Safe adapters, the macro adapters through a proxy, bar replay and alerts on drawings (references in quant-terminal), a mobile pass, and the Fortuna Terminal's migration here after the October competition closes.
