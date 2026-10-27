@@ -89,3 +89,20 @@ table.tb { width: 100%; border-collapse: collapse; font-size: var(--t-xs); } .tb
   .title span, .clock, .cmd .hint { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ── mobile (390px pass) ── */
+@media (max-width: 860px) {
+  body { grid-template-rows: auto auto var(--cmd-h); }
+  .top { flex-wrap: wrap; padding: .35rem .6rem; row-gap: .35rem; gap: .5rem; } .top .sp { flex: 1 0 100%; display: none; } .top .status { margin-left: auto; }
+  .work { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); height: 60vh; }
+  .tools { flex-direction: row; overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: 1px solid var(--line); padding: .15rem .4rem; } .tools hr { width: 0; height: 18px; border-top: 0; border-left: 1px solid var(--line-2); margin: 0 .3rem; }
+  .tabs { overflow-x: auto; scrollbar-width: none; } .tabs::-webkit-scrollbar { display: none; } .tabs button { flex: none; padding: .5rem .75rem; }
+  .rail .r { min-width: 172px; padding: .4rem .6rem; } .rail .r small { white-space: nowrap; overflow: hidden; } .rail .r .sp { width: 44px; }
+  .legend { padding-top: .25rem; }
+  .sheet { padding: .6rem; } .sheet-card { max-height: 92vh; padding: .8rem .9rem 1rem; }
+}
+@media (max-width: 480px) {
+  .top .title b { font-size: var(--t-base); } .tfs button, .seg button { padding: .18rem .42rem; } .mark { font-size: 0; gap: 0; } .mark svg { width: 22px; height: 22px; }
+  .work { height: 56vh; } .inspect { max-height: none; }
+  #cmd::placeholder { color: transparent; } .cmd .hint { display: none; }
+}

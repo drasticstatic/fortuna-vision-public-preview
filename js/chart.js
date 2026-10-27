@@ -42,7 +42,7 @@ export function createChart(el, opts = {}) {
   const drawings = new DrawingLayer(pane); main.attachPrimitive(drawings);
   const lines = []; const panes = {}; const pathS = {};  // indicator panes by id: {series: {key: series}, index}
   const api = {chart, main, vol, emas, overlays, profile, drawings, state, TOOLS, TOOL_BY_ID,
-    setBars(bars, iv, mode) { state.bars = bars; state.iv = iv; state.mode = mode || 'candles'; chart.applyOptions({localization: {timeFormatter: (t) => fmtT(t, iv)}});
+    setBars(bars, iv, mode) { state.bars = bars; state.iv = iv; state.mode = mode || 'candles'; const bigAxis = bars.length && Math.abs(bars[bars.length - 1].c) >= 1e6; chart.applyOptions({localization: {timeFormatter: (t) => fmtT(t, iv), priceFormatter: bigAxis ? (v) => Math.abs(v) >= 1e12 ? (v / 1e12).toFixed(2) + 'T' : Math.abs(v) >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : Math.abs(v) >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v.toFixed(0) : undefined}});
       main.setData(bars.map(b => ({time: b.t / 1000, open: b.o, high: b.h, low: b.l, close: b.c})));
       if (state.mode === 'line') { if (!area) area = chart.addSeries(LW.AreaSeries, {lineColor: '#35c7dd', topColor: 'rgba(53,199,221,.22)', bottomColor: 'rgba(53,199,221,0)', lineWidth: 2, priceLineVisible: false}); area.setData(bars.map(b => ({time: b.t / 1000, value: b.c}))); area.applyOptions({visible: true}); main.applyOptions({visible: false}); } else { area && area.applyOptions({visible: false}); main.applyOptions({visible: true}); }
       vol.setData(bars.map(b => ({time: b.t / 1000, value: b.v || 0, color: b.c >= b.o ? 'rgba(61,220,151,.3)' : 'rgba(255,92,122,.3)'}))); profile.set(bars, profile.on); },
