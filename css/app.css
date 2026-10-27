@@ -68,6 +68,8 @@ tr.jump { cursor: pointer; } tr.jump:hover td { background: var(--brass-2); } .r
 .alist { display: grid; gap: .35rem; } .alist .a { border-left: 2px solid var(--line-2); padding: .1rem .5rem; } .alist .a.warn { border-color: var(--amber); } .alist .a.critical { border-color: var(--down); } .alist small { color: var(--muted); font-family: var(--mono); font-size: var(--t-xs); display: block; }
 table.tb { width: 100%; border-collapse: collapse; font-size: var(--t-xs); } .tb th, .tb td { padding: .25rem .3rem; border-bottom: 1px solid var(--line); text-align: left; } .tb td.n, .tb th.n { font-family: var(--mono); text-align: right; } .tb th { color: var(--muted); font-weight: 500; }
 
+.alloc { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--line); margin: .2rem 0 .35rem; } .alloc i { display: block; height: 100%; }
+
 /* ── command line ── */
 .cmd { display: flex; align-items: center; gap: .6rem; padding: 0 .9rem; border-top: 1px solid var(--line); background: var(--panel); }
 .prompt { color: var(--brass); font-family: var(--mono); font-weight: 600; }

@@ -123,7 +123,7 @@ function drawScene(sc) { if (engine === 'svg' && SV) SV.setScene(sc); else rende
 async function setMode(m) {
   if (m === MODE) return; MODE = m; $$('#mode button').forEach(b => b.classList.toggle('on', b.dataset.mode === m)); $('#tfs').style.visibility = m === 'treasury' ? 'hidden' : ''; $('#tools').classList.toggle('off', m === 'treasury' || engine === 'svg');
   try { const u = new URL(location.href); if (m === 'treasury') u.searchParams.set('mode', 'treasury'); else u.searchParams.delete('mode'); history.replaceState(null, '', u); } catch (e) {}
-  if (m === 'treasury') { if (FLOW.stream) { FLOW.stream.close(); FLOW.stream = null; FLOW.feed = null; clearInterval(FLOW.timer); } renderTabs(TR.TABS); $('#cmd').placeholder = 'treasury: click a chain · yields · stables · holdings · markets to go back'; await TR.enter({drawScene, EMA, jump: (sym) => setMode('markets').then(() => selectMarket(sym))}); }
+  if (m === 'treasury') { if (FLOW.stream) { FLOW.stream.close(); FLOW.stream = null; FLOW.feed = null; clearInterval(FLOW.timer); } renderTabs(TR.TABS); $('#cmd').placeholder = 'treasury: click a chain · yields · stables · holdings · wallets · markets to go back'; await TR.enter({drawScene, EMA, jump: (sym) => setMode('markets').then(() => selectMarket(sym))}); }
   else { TR.leave(); renderTabs(MARKET_TABS); $('#tfs').style.visibility = ''; $('#cmd').placeholder = 'type a market or a command: gold 15m · btc gex · es levels · draw fib · help'; renderRail(); await selectMarket(cur.market, cur.iv, true); }
 }
 function applyEngine(e) {
@@ -272,7 +272,7 @@ function run(text) {
   else if (v === 'alerts') { const A = alerts(); sheet('Price alerts', A.length ? `<table class="tb"><tr><th>market</th><th class="n">price</th><th>direction</th><th>set</th></tr>${A.map(a => `<tr><td>${esc(a.market)}</td><td class="n">${px(a.price)}</td><td>${a.dir}</td><td>${fmtET(a.set)}</td></tr>`).join('')}</table><p>Checked every 30 seconds while the page is open; each fires once, then clears. <code>unalert</code> clears the current market's.</p>` : '<p>No alerts. Set one with <code>alert 4020</code> or <code>alert above 4020</code>.</p>'); return flash('ok'); }
   else if (v === 'unalert') { saveAlerts(alerts().filter(a => a.market !== (r.market || cur.market))); toast('alerts cleared for ' + (r.market || cur.market)); draw(); return; }
   else if (v === 'notify') { try { Notification.requestPermission().then(p => toast('notifications ' + p)); } catch (e) { toast('notifications unavailable here', 'err'); } return; }
-  else if (MODE === 'treasury' && ['yields', 'stables', 'holdings'].includes(v)) showTab(v); else if (MODE === 'treasury' && v === 'desk') showTab('tdesk');
+  else if (MODE === 'treasury' && ['yields', 'stables', 'holdings'].includes(v)) showTab(v); else if (MODE === 'treasury' && v === 'wallets') showTab('holdings'); else if (MODE === 'treasury' && v === 'desk') showTab('tdesk');
   else if (['levels', 'regime', 'flow', 'gamma', 'calc', 'desk'].includes(v)) showTab(v);
   if (r.market || r.tf) { if (MODE === 'treasury') setMode('markets').then(() => selectMarket(r.market || cur.market, r.tf || undefined)); else selectMarket(r.market || cur.market, r.tf || undefined); } flash('ok');
 }
