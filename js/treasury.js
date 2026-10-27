@@ -12,7 +12,7 @@ const get = async (u) => { const r = await fetch(u); if (!r.ok) throw new Error(
 
 import * as WAL from './wallets.js'; // wallets by public address (read-only adapters)
 import { tabArb } from './dexarb.js'; // the Arbitrum DEX-arb lane (Alfred's adapter; reads the lane's public snapshot)
-export const TABS = [{id: 'caps', label: 'Markets'}, {id: 'yields', label: 'Yields'}, {id: 'stables', label: 'Stables'}, {id: 'holdings', label: 'Holdings'}, {id: 'arb', label: 'DEX arb'}, {id: 'tdesk', label: 'Desk'}];
+export const TABS = [{id: 'caps', label: 'Markets'}, {id: 'yields', label: 'Yields'}, {id: 'stables', label: 'Stables'}, {id: 'holdings', label: 'Holdings'}, {id: 'policy', label: 'Policy'}, {id: 'arb', label: 'DEX arb'}, {id: 'tdesk', label: 'Desk'}];
 const S = {chains: null, chain: 'Ethereum', hist: {}, pools: null, stables: null, prices: {}, tab: 'caps', global: null, caps: null, capsAt: 0};
 let app = null;
 
@@ -39,7 +39,7 @@ async function selectChain(name) {
   $('#legend').innerHTML = `<span><b>${esc(name)} TVL</b> daily, USD</span><span style="color:#9b8cff">EMA 30</span><span style="color:#ff8fb1">EMA 90</span>`;
   renderTab(S.tab);
 }
-export function renderTab(t) { S.tab = t; ({caps: tabCaps, yields: tabYields, stables: tabStables, holdings: tabHoldings, arb: tabArb, tdesk: tabDesk}[t] || (() => {}))(); }
+export function renderTab(t) { S.tab = t; ({caps: tabCaps, yields: tabYields, stables: tabStables, holdings: tabHoldings, policy: tabPolicy, arb: tabArb, tdesk: tabDesk}[t] || (() => {}))(); }
 
 async function tabCaps() {
   const el = $('#tab-caps'); if (!el) return; if (!S.caps || Date.now() - S.capsAt > 120000) { el.innerHTML = '<p>loading market caps…</p>'; try { [S.global, S.caps] = await Promise.all([get(CG + '/global').then(r => r.data), get(CG + '/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h,7d,30d')]); S.capsAt = Date.now(); } catch (e) { el.innerHTML = '<p>CoinGecko unavailable (rate-limited or offline); try again in a minute.</p>'; return; } }
@@ -67,8 +67,9 @@ async function tabStables() {
 function holdings() { try { return JSON.parse(localStorage.getItem('fv-holdings') || '[]'); } catch (e) { return []; } }
 function saveHoldings(h) { try { localStorage.setItem('fv-holdings', JSON.stringify(h)); } catch (e) {} }
 const CG_IDS = {btc: 'bitcoin', eth: 'ethereum', sol: 'solana', usdc: 'usd-coin', usdt: 'tether', dai: 'dai', usds: 'usds', wbtc: 'wrapped-bitcoin', steth: 'staked-ether', link: 'chainlink', arb: 'arbitrum', op: 'optimism', matic: 'matic-network', pol: 'polygon-ecosystem-token', avax: 'avalanche-2', bnb: 'binancecoin', ada: 'cardano', dot: 'polkadot', atom: 'cosmos', xrp: 'ripple', doge: 'dogecoin', ltc: 'litecoin', uni: 'uniswap', aave: 'aave', mkr: 'maker', cake: 'pancakeswap-token', gold: 'pax-gold', paxg: 'pax-gold', xaut: 'tether-gold'};
-async function tabHoldings() {
-  const el = $('#tab-holdings'); if (!el) return; const H = holdings(); const W = WAL.list(); S.wal = S.wal || {};
+/* Everything the treasury holds, priced: on-chain rows from the wallets read plus the ledger. Shared by Holdings and Policy. */
+async function priced() {
+  const H = holdings(); S.wal = S.wal || {};
   const wrows = Object.values(S.wal).flatMap(x => x.rows || []);
   const ids = [...new Set(H.map(h => CG_IDS[h.asset.toLowerCase()] || h.asset.toLowerCase()).concat(wrows.map(r => r.cg).filter(Boolean)))];
   const need = ids.filter(id => !S.prices[id] || Date.now() - (S.prices[id].at || 0) > 120000); S.priceErr = false;
@@ -77,7 +78,10 @@ async function tabHoldings() {
   const priceOf = (id, sym) => { if (id && S.prices[id]) return S.prices[id].current_price; const u = (sym || '').toUpperCase(); if (['USD', 'USDC', 'USDT', 'DAI', 'USDC.E', 'USDS', 'USDE', 'FDUSD', 'PYUSD'].includes(u)) return 1; const m = app && app.price ? app.price(ALIAS[u] || u) : null; return m ?? null; };
   const manual = H.map(h => { const id = CG_IDS[h.asset.toLowerCase()] || h.asset.toLowerCase(); const price = h.asset.toLowerCase() === 'usd' ? 1 : priceOf(id, h.asset); const p = S.prices[id]; return {src: 'ledger', wallet: h.note || 'ledger', chain: '—', sym: h.asset.toUpperCase(), qty: h.qty, price, value: price != null ? price * h.qty : null, chg: p ? p.price_change_percentage_24h : null}; });
   const onchain = wrows.map(r => { const price = r.cg ? priceOf(r.cg, r.sym) : priceOf(null, r.sym); const p = r.cg ? S.prices[r.cg] : null; return {src: 'chain', ...r, price, value: price != null ? price * r.qty : null, chg: p ? p.price_change_percentage_24h : null}; });
-  const rows = onchain.concat(manual); const total = rows.reduce((s, r) => s + (r.value || 0), 0);
+  const rows = onchain.concat(manual); const total = rows.reduce((s, r) => s + (r.value || 0), 0); return {rows, total, H};
+}
+async function tabHoldings() {
+  const el = $('#tab-holdings'); if (!el) return; const W = WAL.list(); const {rows, total, H} = await priced();
   const byKey = (k) => { const m = {}; rows.forEach(r => { if (r.value) m[r[k]] = (m[r[k]] || 0) + r.value; }); return Object.entries(m).sort((a, b) => b[1] - a[1]); };
   const bar = (list) => list.length ? `<div class="alloc">${list.map(([k, v], i) => `<i style="width:${(v / total * 100).toFixed(2)}%;background:${ALLOC[i % ALLOC.length]}" title="${esc(k)} ${(v / total * 100).toFixed(1)}%"></i>`).join('')}</div><div class="alloc-k">${list.slice(0, 8).map(([k, v], i) => `<span><b style="color:${ALLOC[i % ALLOC.length]}">■</b> ${esc(k)} ${(v / total * 100).toFixed(1)}%</span>`).join('')}</div>` : '<p>—</p>';
   const reading = Object.values(S.wal).some(x => x.loading);
@@ -102,6 +106,43 @@ async function readWallets(list) {
   await Promise.all(list.map(async w => { try { S.wal[w.addr] = await WAL.read(w); } catch (e) { S.wal[w.addr] = {rows: [], errors: ['all']}; } }));
   S.walAt = Date.now(); if (S.tab === 'holdings') tabHoldings();
 }
+
+/* Policy — the organisation's written treasury rules (reserve, targets, bands, concentration, giving), and the drift of what it holds against them.
+ * The policy is a small JSON document kept in this browser (or loaded from a URL the steward trusts). The spec behind it lives in the private lane. */
+const CLASS_OF = (sym) => { const u = (sym || '').toUpperCase(); if (['USD', 'USDC', 'USDT', 'DAI', 'USDC.E', 'USDS', 'USDE', 'FDUSD', 'PYUSD'].includes(u)) return 'stables'; if (['BTC', 'WBTC', 'CBBTC', 'BTCB'].includes(u)) return 'BTC'; if (['ETH', 'WETH', 'WETH.E', 'STETH'].includes(u)) return 'ETH'; if (['SOL', 'WSOL', 'MSOL', 'JITOSOL'].includes(u)) return 'SOL'; if (['PAXG', 'XAUT'].includes(u)) return 'gold'; return 'other'; };
+const EXAMPLE_POLICY = {name: 'Example fellowship treasury', reserve: {months: 6, monthly_cost_usd: 4000, unit: ['USDC', 'USDT'], max_share_one_issuer: 0.6}, working_capital: {months: 3}, targets: {stables: 0.5, BTC: 0.2, ETH: 0.15, SOL: 0.05, gold: 0.05, other: 0.05}, band: 0.2, max_per_chain: 0.6, giving: {tithe_of_realised_gains: 0.1, discretionary_cap_usd_per_quarter: 2500}, agents: {proposal_cap_usd: 5000, kill_switch: 'treasury/STOP'}};
+function policy() { try { return JSON.parse(localStorage.getItem('fv-policy') || 'null'); } catch (e) { return null; } }
+function savePolicy(p) { try { if (p) localStorage.setItem('fv-policy', JSON.stringify(p)); else localStorage.removeItem('fv-policy'); } catch (e) {} }
+async function tabPolicy() {
+  const el = $('#tab-policy'); if (!el) return; const P = policy();
+  if (!P) { el.innerHTML = `<h4>Treasury policy</h4><p>A policy is the organisation's written rules: how many months of reserve are never deployed, the target weights by asset class, how far a weight may drift before a rebalance is proposed, how much may sit on one chain, and what the giving rules are. The workstation reads it and shows the drift; an agent proposes, a steward approves, the custodian signs.</p>
+      <p><button class="btn brass" id="p-ex" type="button">load the example policy</button></p><h4>Or paste one</h4><div class="form"><label class="w">policy JSON<textarea id="p-txt" rows="8" spellcheck="false" placeholder='{"name": "…", "reserve": {"months": 6, "monthly_cost_usd": 4000}, "targets": {"stables": 0.5, "BTC": 0.2, "ETH": 0.2, "other": 0.1}, "band": 0.2, "max_per_chain": 0.6}'></textarea></label><label class="w"><button class="btn" id="p-load" type="button">use this policy</button></label></div><p>Kept in this browser only. Classes: stables · BTC · ETH · SOL · gold · other.</p>`;
+    $('#p-ex').addEventListener('click', () => { savePolicy(EXAMPLE_POLICY); tabPolicy(); });
+    $('#p-load').addEventListener('click', () => { try { const p = JSON.parse($('#p-txt').value); if (!p || !p.targets) throw 0; savePolicy(p); tabPolicy(); } catch (e) { $('#p-txt').style.borderColor = 'var(--down)'; } });
+    return;
+  }
+  el.innerHTML = '<p>pricing holdings…</p>'; const {rows, total} = await priced();
+  const byClass = {}; rows.forEach(r => { if (r.value) byClass[CLASS_OF(r.sym)] = (byClass[CLASS_OF(r.sym)] || 0) + r.value; });
+  const byChain = {}; rows.forEach(r => { if (r.value && r.chain !== '—') byChain[r.chain] = (byChain[r.chain] || 0) + r.value; });
+  const band = P.band ?? 0.2; const targets = P.targets || {}; const classes = [...new Set(Object.keys(targets).concat(Object.keys(byClass)))];
+  const drift = classes.map(c => { const t = targets[c] || 0, a = total ? (byClass[c] || 0) / total : 0; const rel = t ? (a - t) / t : (a > 0 ? Infinity : 0); const state = !total ? 'empty' : Math.abs(rel) <= band ? 'in band' : rel > 0 ? 'over' : 'under'; return {c, t, a, rel, state, usd: (a - t) * total}; });
+  const stables = byClass.stables || 0; const months = P.reserve && P.reserve.monthly_cost_usd ? stables / P.reserve.monthly_cost_usd : null; const needMonths = (P.reserve ? P.reserve.months || 0 : 0) + (P.working_capital ? P.working_capital.months || 0 : 0);
+  const issuers = {}; rows.forEach(r => { if (r.value && CLASS_OF(r.sym) === 'stables') { const k = r.sym.toUpperCase().replace('.E', ''); issuers[k] = (issuers[k] || 0) + r.value; } }); const topIssuer = Object.entries(issuers).sort((a, b) => b[1] - a[1])[0];
+  const chainMax = P.max_per_chain ?? 1; const chainBreach = Object.entries(byChain).filter(([, v]) => total && v / total > chainMax);
+  const breaches = drift.filter(d => d.state === 'over' || d.state === 'under');
+  const flag = (ok, text) => `<div class="a ${ok ? '' : 'warn'}">${text}</div>`;
+  el.innerHTML = `<div class="tile"><small>${esc(P.name || 'policy')}</small><div class="big ${breaches.length || chainBreach.length ? 'down' : 'up'}">${!total ? 'no holdings read' : breaches.length || chainBreach.length ? (breaches.length + chainBreach.length) + ' rule' + (breaches.length + chainBreach.length === 1 ? '' : 's') + ' out of band' : 'within policy'}</div><small>${usd(total)} priced · band ±${(band * 100).toFixed(0)}% relative · max ${(chainMax * 100).toFixed(0)}% on one chain</small></div>
+    <h4>Reserve</h4><div class="alist">${flag(months == null || months >= needMonths, months == null ? 'set <code>reserve.monthly_cost_usd</code> to measure coverage' : `<b>${months.toFixed(1)} months</b> of cost held in stablecoins · policy wants ${needMonths} (reserve ${P.reserve ? P.reserve.months || 0 : 0} + working capital ${P.working_capital ? P.working_capital.months || 0 : 0})`)}
+    ${P.reserve && P.reserve.max_share_one_issuer && topIssuer && stables ? flag(topIssuer[1] / stables <= P.reserve.max_share_one_issuer, `largest stablecoin issuer ${esc(topIssuer[0])} is ${(topIssuer[1] / stables * 100).toFixed(0)}% of the reserve · cap ${(P.reserve.max_share_one_issuer * 100).toFixed(0)}%`) : ''}</div>
+    <h4>Targets and drift</h4><table class="tb"><tr><th>class</th><th class="n">target</th><th class="n">actual</th><th class="n">drift</th><th>state</th></tr>${drift.sort((a, b) => b.a - a.a).map(d => `<tr><td>${esc(d.c)}</td><td class="n">${(d.t * 100).toFixed(0)}%</td><td class="n">${(d.a * 100).toFixed(1)}%</td><td class="n ${d.state === 'over' ? 'down' : d.state === 'under' ? 'down' : ''}">${d.usd ? (d.usd > 0 ? '+' : '−') + usd(Math.abs(d.usd)) : '—'}</td><td class="${d.state === 'in band' ? 'up' : d.state === 'empty' ? 'muted' : 'down'}">${d.state}</td></tr>`).join('')}</table>
+    <p>Drift is the dollar amount above (+) or below (−) target. A class outside its band is a rebalance proposal waiting for a steward: this page reads, it never moves anything.</p>
+    <h4>Chains</h4>${Object.keys(byChain).length ? `<div class="alist">${Object.entries(byChain).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([k, v]) => flag(v / total <= chainMax, `${esc(k)} ${(v / total * 100).toFixed(1)}%`)).join('')}</div>` : '<p>No on-chain positions read yet (Holdings → read balances).</p>'}
+    ${P.giving ? `<h4>Giving rules</h4><dl class="kv">${P.giving.tithe_of_realised_gains != null ? `<dt>tithe of realised gains</dt><dd>${(P.giving.tithe_of_realised_gains * 100).toFixed(0)}%</dd>` : ''}${P.giving.discretionary_cap_usd_per_quarter != null ? `<dt>discretionary, per quarter</dt><dd>${usd(P.giving.discretionary_cap_usd_per_quarter)}</dd>` : ''}</dl><p>A gift is proposed by a steward, never by an agent; agents remind and size.</p>` : ''}
+    ${P.agents ? `<h4>Agent limits</h4><dl class="kv">${P.agents.proposal_cap_usd != null ? `<dt>proposal cap</dt><dd>${usd(P.agents.proposal_cap_usd)}</dd>` : ''}${P.agents.kill_switch ? `<dt>kill switch</dt><dd>${esc(P.agents.kill_switch)}</dd>` : ''}</dl>` : ''}
+    <p style="margin-top:.6rem"><button class="btn" id="p-edit" type="button">edit</button> <button class="btn" id="p-clear" type="button">remove policy</button></p>`;
+  $('#p-clear').addEventListener('click', () => { savePolicy(null); tabPolicy(); });
+  $('#p-edit').addEventListener('click', () => { savePolicy(null); tabPolicy(); const t = $('#p-txt'); if (t) t.value = JSON.stringify(P, null, 2); });
+}
 async function tabDesk() {
   const el = $('#tab-tdesk'); if (!el) return; const c = S.chains ? S.chains.find(x => x.name === S.chain) : null;
   let lane = '<p>live snapshot unavailable</p>'; try { const d = await get('https://drasticstatic.github.io/trading-bot-arbitrage-public/edge/latest.json'); const e = d.edge || {}, pr = e.progress || {}, best = e.best || {}; lane = `<dl class="kv"><dt>study</dt><dd>${(pr.elapsedHours || 0).toFixed(1)} h of ${pr.targetDays || 7} d</dd><dt>simulated · cleared costs</dt><dd>${e.simulated ?? 0} · ${e.cleared ?? 0}</dd><dt>would have fired</dt><dd>${e.wouldFire ?? 0}</dd>${best.pair ? `<dt>best edge</dt><dd>${esc(best.pair)} · net ${best.netSpreadPct != null ? best.netSpreadPct.toFixed(3) + '%' : '—'}${best.clears ? ' · clears costs' : ' · below costs'}</dd>` : ''}</dl>`; } catch (e) {}
@@ -109,5 +150,5 @@ async function tabDesk() {
     <dl class="kv"><dt>chain in view</dt><dd>${esc(S.chain)}</dd><dt>value locked</dt><dd>${big(c ? c.tvl : null)}</dd><dt>chains tracked</dt><dd>${S.chains ? S.chains.length : '—'}</dd></dl>
     <h4>Sources</h4><p>DeFiLlama (chains, TVL history, yields, stablecoins), CoinGecko (prices). No keys, no accounts. Next adapters: wallet and Safe balances by public address, Fed and Treasury rates, CFTC positioning, and the DEX-arb lane's results feed.</p>
     <h4>DEX-arb lane · results only</h4>${lane}<p>The arbitrage bot's public snapshot: results, never the method.</p>
-    <h4>Commands</h4><p><code>treasury</code> opens this mode · <code>markets</code> returns to the trading workstation · click a chain in the rail · <code>svg</code> / <code>tradingview</code> still pick the chart engine.</p>`;
+    <h4>Commands</h4><p><code>treasury</code> opens this mode · <code>policy</code> shows the drift against the written rules · <code>markets</code> returns to the trading workstation · click a chain in the rail · <code>svg</code> / <code>tradingview</code> still pick the chart engine.</p>`;
 }

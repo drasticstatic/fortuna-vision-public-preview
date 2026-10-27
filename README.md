@@ -65,6 +65,7 @@ An indicator is one JavaScript module in `indicators/` with `inputs`, `outputs` 
 | 🌾 **Yields** | stablecoin pools by APY on the chain in view and across chains (loaded on demand) | DeFiLlama |
 | 💵 **Stables** | USD stablecoin supply, 7d / 30d change, peg health | DeFiLlama |
 | 🧺 **Holdings** | wallets by **public address** (an EVM address read on seven chains for native and blue-chip tokens, Solana, Bitcoin), plus a ledger for what is off chain; allocation by asset and by chain, priced live | public RPCs, Blockstream, CoinGecko |
+| 📜 **Policy** | the organisation's written rules as a small JSON (reserve months, target weights by class, drift band, chain concentration, giving rules, agent limits) and the live drift of the holdings against them: reserve coverage in months, issuer concentration, over / under / in band per class | your policy + the holdings above |
 | 🔁 **DEX arb** | the Arbitrum arbitrage lane, results only, never the method | the lane's public snapshot |
 | 🗒️ **Desk** | what this mode is for, sources, commands | — |
 
@@ -100,4 +101,4 @@ No keys, no accounts, nothing leaves the page except the requests above.
 
 ## 🧭 Roadmap
 
-Phase 1 (shipped Oct 26, 2026): the workstation shell, two chart engines, overlays, drawings, the indicator contract, Flow, Gamma, Calc with the ladder planner, Desk, Treasury mode, price alerts, the command line. Oct 27: wallets by public address, a mobile pass. Next: Safe adapters, the macro adapters through a proxy, bar replay and alerts on drawings (references in quant-terminal), a mobile pass, and the Fortuna Terminal's migration here after the October competition closes.
+Phase 1 (shipped Oct 26, 2026): the workstation shell, two chart engines, overlays, drawings, the indicator contract, Flow, Gamma, Calc with the ladder planner, Desk, Treasury mode, price alerts, the command line. Oct 27: wallets by public address, the Policy tab with drift, a mobile pass. Next: Safe adapters, the macro adapters through a proxy, bar replay and alerts on drawings (references in quant-terminal), a mobile pass, and the Fortuna Terminal's migration here after the October competition closes.
