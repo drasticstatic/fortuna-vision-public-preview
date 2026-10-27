@@ -11,12 +11,12 @@ const cls = (v) => v > 0 ? 'up' : v < 0 ? 'down' : '';
 const get = async (u) => { const r = await fetch(u); if (!r.ok) throw new Error(u + ' ' + r.status); return r.json(); };
 
 import { tabArb } from './dexarb.js'; // the Arbitrum DEX-arb lane (Alfred's adapter; reads the lane's public snapshot)
-export const TABS = [{id: 'yields', label: 'Yields'}, {id: 'stables', label: 'Stables'}, {id: 'holdings', label: 'Holdings'}, {id: 'arb', label: 'DEX arb'}, {id: 'tdesk', label: 'Desk'}];
-const S = {chains: null, chain: 'Ethereum', hist: {}, pools: null, stables: null, prices: {}, tab: 'yields'};
+export const TABS = [{id: 'caps', label: 'Markets'}, {id: 'yields', label: 'Yields'}, {id: 'stables', label: 'Stables'}, {id: 'holdings', label: 'Holdings'}, {id: 'arb', label: 'DEX arb'}, {id: 'tdesk', label: 'Desk'}];
+const S = {chains: null, chain: 'Ethereum', hist: {}, pools: null, stables: null, prices: {}, tab: 'caps', global: null, caps: null, capsAt: 0};
 let app = null;
 
 export async function enter(ctx) {
-  app = ctx; S.tab = 'yields';
+  app = ctx; S.tab = 'caps';
   $('#mkt').textContent = 'Treasury'; $('#mkt-sub').textContent = 'loading chains…';
   try { S.chains = (await get(LLAMA + '/v2/chains')).filter(c => c.tvl > 0).sort((a, b) => b.tvl - a.tvl); } catch (e) { $('#mkt-sub').textContent = 'DeFiLlama unavailable'; return; }
   renderRail(); await selectChain(S.chain);
@@ -38,8 +38,15 @@ async function selectChain(name) {
   $('#legend').innerHTML = `<span><b>${esc(name)} TVL</b> daily, USD</span><span style="color:#9b8cff">EMA 30</span><span style="color:#ff8fb1">EMA 90</span>`;
   renderTab(S.tab);
 }
-export function renderTab(t) { S.tab = t; ({yields: tabYields, stables: tabStables, holdings: tabHoldings, arb: tabArb, tdesk: tabDesk}[t] || (() => {}))(); }
+export function renderTab(t) { S.tab = t; ({caps: tabCaps, yields: tabYields, stables: tabStables, holdings: tabHoldings, arb: tabArb, tdesk: tabDesk}[t] || (() => {}))(); }
 
+async function tabCaps() {
+  const el = $('#tab-caps'); if (!el) return; if (!S.caps || Date.now() - S.capsAt > 120000) { el.innerHTML = '<p>loading market caps…</p>'; try { [S.global, S.caps] = await Promise.all([get(CG + '/global').then(r => r.data), get(CG + '/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h,7d,30d')]); S.capsAt = Date.now(); } catch (e) { el.innerHTML = '<p>CoinGecko unavailable (rate-limited or offline); try again in a minute.</p>'; return; } }
+  const g = S.global; const dom = g.market_cap_percentage || {}; const total = g.total_market_cap.usd, vol = g.total_volume.usd; const total2 = total * (1 - (dom.btc || 0) / 100);
+  el.innerHTML = `<div class="tile"><small>total crypto market cap</small><div class="big ${cls(g.market_cap_change_percentage_24h_usd)}">${big(total)}</div><small>${pct(g.market_cap_change_percentage_24h_usd)} 24h · volume ${big(vol)} · TOTAL2 (ex-BTC) ${big(total2)}</small></div>
+    <div class="tile"><small>dominance</small><div class="prints">${Object.entries(dom).slice(0, 8).map(([k, v]) => `<span>${esc(k.toUpperCase())} <b>${v.toFixed(1)}%</b></span>`).join('')}</div></div>
+    <h4>Top 50 by market cap</h4><table class="tb"><tr><th>#</th><th>asset</th><th class="n">price</th><th class="n">24h</th><th class="n">7d</th><th class="n">30d</th><th class="n">cap</th></tr>${S.caps.map(c => `<tr><td class="muted">${c.market_cap_rank}</td><td>${esc(c.symbol.toUpperCase())}<br><small class="muted">${esc(c.name)}</small></td><td class="n">${usd(c.current_price, c.current_price < 1 ? 4 : 2)}</td><td class="n ${cls(c.price_change_percentage_24h_in_currency)}">${pct(c.price_change_percentage_24h_in_currency, 1)}</td><td class="n ${cls(c.price_change_percentage_7d_in_currency)}">${pct(c.price_change_percentage_7d_in_currency, 1)}</td><td class="n ${cls(c.price_change_percentage_30d_in_currency)}">${pct(c.price_change_percentage_30d_in_currency, 1)}</td><td class="n">${big(c.market_cap)}</td></tr>`).join('')}</table><p>CoinGecko, refreshed every two minutes while open. Market cap and dominance are the treasury's weather; the chains rail is where the value is actually put to work.</p>`;
+}
 async function tabYields() {
   const el = $('#tab-yields'); if (!el) return;
   if (!S.pools) { el.innerHTML = `<h4>Stablecoin yields</h4><p>DeFiLlama's pool list is large (about 11 MB). Load it once per session and it stays in memory.</p><button class="btn brass" id="y-load" type="button">load yields</button>`; $('#y-load').addEventListener('click', async () => { $('#y-load').textContent = 'loading…'; try { S.pools = (await get(YIELDS + '/pools')).data; } catch (e) { $('#y-load').textContent = 'failed, try again'; return; } tabYields(); }); return; }
