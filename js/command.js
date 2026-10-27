@@ -6,7 +6,7 @@
  */
 export const ALIASES = {es: 'S&P 500', sp: 'S&P 500', spx: 'S&P 500', sp500: 'S&P 500', nq: 'Nasdaq-100', ndx: 'Nasdaq-100', nas: 'Nasdaq-100', nasdaq: 'Nasdaq-100', gc: 'Gold', xau: 'Gold', gold: 'Gold', si: 'Silver', xag: 'Silver', silver: 'Silver', cl: 'Crude', wti: 'Crude', oil: 'Crude', crude: 'Crude', brent: 'Brent', xbr: 'Brent', btc: 'BTC', eth: 'ETH', sol: 'SOL', rty: 'Russell 2000', m2k: 'Russell 2000', russell: 'Russell 2000', total2: 'TOTAL2'};
 const TFS = {'1m': '5m', '5m': '5m', '5': '5m', '15m': '15m', '15': '15m', '1h': '1h', '60': '1h', 'h': '1h', '4h': '4h', '240': '4h', '1d': '1d', 'd': '1d', 'daily': '1d'};
-const VERBS = ['levels', 'regime', 'flow', 'gamma', 'gex', 'calc', 'desk', 'draw', 'clear', 'theme', 'help', 'fit', 'follow', 'line', 'candles', 'vol', 'volume', 'svg', 'tradingview', 'tv', 'treasury', 'markets', 'yields', 'stables', 'holdings', 'wallets', 'alert', 'alerts', 'unalert', 'notify'];
+const VERBS = ['levels', 'regime', 'flow', 'gamma', 'gex', 'calc', 'desk', 'draw', 'clear', 'theme', 'help', 'fit', 'follow', 'line', 'candles', 'vol', 'volume', 'svg', 'tradingview', 'tv', 'treasury', 'markets', 'yields', 'stables', 'holdings', 'wallets', 'policy', 'alert', 'alerts', 'unalert', 'notify'];
 
 export function parse(text, markets) {
   const toks = text.trim().toLowerCase().split(/\s+/).filter(Boolean); if (!toks.length) return null;
