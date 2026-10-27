@@ -123,7 +123,7 @@ function drawScene(sc) { if (engine === 'svg' && SV) SV.setScene(sc); else rende
 async function setMode(m) {
   if (m === MODE) return; MODE = m; $$('#mode button').forEach(b => b.classList.toggle('on', b.dataset.mode === m)); $('#tfs').style.visibility = m === 'treasury' ? 'hidden' : ''; $('#tools').classList.toggle('off', m === 'treasury' || engine === 'svg');
   try { const u = new URL(location.href); if (m === 'treasury') u.searchParams.set('mode', 'treasury'); else u.searchParams.delete('mode'); history.replaceState(null, '', u); } catch (e) {}
-  if (m === 'treasury') { if (FLOW.stream) { FLOW.stream.close(); FLOW.stream = null; FLOW.feed = null; clearInterval(FLOW.timer); } renderTabs(TR.TABS); $('#cmd').placeholder = 'treasury: click a chain · yields · stables · holdings · wallets · markets to go back'; await TR.enter({drawScene, EMA, jump: (sym) => setMode('markets').then(() => selectMarket(sym))}); }
+  if (m === 'treasury') { if (FLOW.stream) { FLOW.stream.close(); FLOW.stream = null; FLOW.feed = null; clearInterval(FLOW.timer); } renderTabs(TR.TABS); $('#cmd').placeholder = 'treasury: click a chain · yields · stables · holdings · wallets · markets to go back'; await TR.enter({drawScene, EMA, jump: (sym) => setMode('markets').then(() => selectMarket(sym)), price: (sym) => { const l = lv(sym); return l ? (MIDS[l.feed] ?? l.last ?? null) : null; }}); }
   else { TR.leave(); renderTabs(MARKET_TABS); $('#tfs').style.visibility = ''; $('#cmd').placeholder = 'type a market or a command: gold 15m · btc gex · es levels · draw fib · help'; renderRail(); await selectMarket(cur.market, cur.iv, true); }
 }
 function applyEngine(e) {
