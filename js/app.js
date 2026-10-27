@@ -48,7 +48,10 @@ async function boot() {
   try { MIDS = await mids(); } catch (e) {} setInterval(async () => { try { MIDS = await mids(); if (MODE === 'markets') renderRail(); checkAlerts(); } catch (e) {} }, 30000);
   setInterval(async () => { try { const fresh = await loadTerminal(); const changed = fresh.levels.asof !== T.levels.asof; Object.assign(T, fresh); if (changed && MODE === 'markets') { status('ok', `data ${fmtET(T.levels.asof)} ET`); renderRail(); renderTab(); } } catch (e) {} }, 120000);
   await loadIndicator('og', 'og-oscillator.js');
+  const qmode = new URLSearchParams(location.search).get('mode'); const qeng = new URLSearchParams(location.search).get('engine'); if (qeng === 'svg' || qeng === 'lw') applyEngine(qeng);
   await selectMarket(cur.market, cur.iv, true);
+  if (qmode === 'treasury') setMode('treasury');
+  let seen = false; try { seen = !!localStorage.getItem('fv-welcomed'); } catch (e) {} if (!seen && !qmode) { welcome(); try { localStorage.setItem('fv-welcomed', '1'); } catch (e) {} }
 }
 
 function status(kind, text) { const s = $('#status'); s.className = 'status ' + kind; s.innerHTML = `<i></i> ${esc(text)}`; }
@@ -57,7 +60,8 @@ function clock() { $('#clock').textContent = new Date().toLocaleTimeString('en-U
 /* ── markets rail ── */
 function renderRail() {
   const W = T.state.watchlist || []; const groups = [['Metals', ['Gold', 'Silver']], ['Energy', ['Crude', 'Brent']], ['Indices', ['S&P 500', 'Nasdaq-100', 'Russell 2000']], ['Crypto', ['BTC', 'ETH', 'SOL', 'TOTAL2']]];
-  const seen = new Set(); const row = (l) => { seen.add(l.market); const w = W.find(x => x.market === l.market); const last = MIDS[l.feed] ?? l.last; const chg = l.chg_24h; return `<div class="r ${l.market === cur.market ? 'on' : ''}" data-m="${esc(l.market)}" role="button" tabindex="0"><b>${esc(l.market)}${w ? `<span class="st ${esc(w.status)}">${esc(w.status)}</span>` : ''}</b><span class="px">${px(last)}</span><small>${esc(l.feed)} · ${esc(l.bias_1h)} 1h / ${esc(l.bias_4h)} 4h</small><span class="chg ${cls(chg)}">${pct(chg)}</span></div>`; };
+  const spark = (a, up) => { if (!Array.isArray(a) || a.length < 3) return ''; const lo = Math.min(...a), hi = Math.max(...a); const X = (i) => (i / (a.length - 1) * 64).toFixed(1), Y = (v) => (16 - 1 - (v - lo) / ((hi - lo) || 1) * 14).toFixed(1); return `<svg class="sp" viewBox="0 0 64 16" aria-hidden="true"><path d="${a.map((v, i) => (i ? 'L' : 'M') + X(i) + ',' + Y(v)).join(' ')}" fill="none" stroke="${up ? '#3ddc97' : '#ff5c7a'}" stroke-width="1.2"/></svg>`; };
+  const seen = new Set(); const row = (l) => { seen.add(l.market); const w = W.find(x => x.market === l.market); const last = MIDS[l.feed] ?? l.last; const chg = l.chg_24h; return `<div class="r ${l.market === cur.market ? 'on' : ''}" data-m="${esc(l.market)}" role="button" tabindex="0"><b>${esc(l.market)}${w ? `<span class="st ${esc(w.status)}">${esc(w.status)}</span>` : ''}</b><span class="px">${px(last)}</span><small>${esc(l.bias_1h)} 1h / ${esc(l.bias_4h)} 4h ${spark(l.spark, chg >= 0)}</small><span class="chg ${cls(chg)}">${pct(chg)}</span></div>`; };
   let html = ''; groups.forEach(([g, ms]) => { const rows = ms.map(m => lv(m)).filter(Boolean); if (!rows.length) return; html += `<div class="grp">${g}</div>` + rows.map(row).join(''); });
   const rest = T.levels.levels.filter(l => !seen.has(l.market)); if (rest.length) html += `<div class="grp">More</div>` + rest.map(row).join('');
   $('#rail').innerHTML = html; $$('#rail .r').forEach(r => { r.addEventListener('click', () => selectMarket(r.dataset.m)); r.addEventListener('keydown', (e) => { if (e.key === 'Enter') selectMarket(r.dataset.m); }); });
@@ -67,7 +71,7 @@ function renderRail() {
 async function selectMarket(m, iv, first) {
   const l = lv(m); if (!l) return; cur.market = m; if (iv) cur.iv = iv; $$('#tfs button').forEach(b => b.classList.toggle('on', b.dataset.tf === cur.iv));
   $('#mkt').textContent = m; $('#mkt-sub').textContent = `${l.feed} · loading`;
-  try { const u = new URL(location.href); u.searchParams.set('m', m); u.searchParams.set('tf', cur.iv); history.replaceState(null, '', u); } catch (e) {}
+  try { const u = new URL(location.href); u.searchParams.set('m', m); u.searchParams.set('tf', cur.iv); u.searchParams.delete('mode'); if (engine === 'svg') u.searchParams.set('engine', 'svg'); else u.searchParams.delete('engine'); history.replaceState(null, '', u); } catch (e) {}
   renderRail(); C.drawings.setItems(loadDrawings(m)); cur.mode = l.line ? 'line' : 'candles';
   try {
     if (l.candles) { cur.bars = agg(l.candles, IV_MS[cur.iv]); cur.h1 = {candles: agg(l.candles, 36e5)}; }
@@ -118,11 +122,12 @@ function draw() {
 function drawScene(sc) { if (engine === 'svg' && SV) SV.setScene(sc); else renderLW(sc); showOHLC(sc.bars[sc.bars.length - 1]); if (engine !== 'svg') C.fit(); }
 async function setMode(m) {
   if (m === MODE) return; MODE = m; $$('#mode button').forEach(b => b.classList.toggle('on', b.dataset.mode === m)); $('#tfs').style.visibility = m === 'treasury' ? 'hidden' : ''; $('#tools').classList.toggle('off', m === 'treasury' || engine === 'svg');
-  if (m === 'treasury') { if (FLOW.stream) { FLOW.stream.close(); FLOW.stream = null; FLOW.feed = null; clearInterval(FLOW.timer); } renderTabs(TR.TABS); $('#cmd').placeholder = 'treasury: click a chain · yields · stables · holdings · markets to go back'; await TR.enter({drawScene, EMA}); }
-  else { TR.leave(); renderTabs(MARKET_TABS); $('#cmd').placeholder = 'type a market or a command: gold 15m · btc gex · es levels · draw fib · help'; renderRail(); await selectMarket(cur.market, cur.iv, true); }
+  try { const u = new URL(location.href); if (m === 'treasury') u.searchParams.set('mode', 'treasury'); else u.searchParams.delete('mode'); history.replaceState(null, '', u); } catch (e) {}
+  if (m === 'treasury') { if (FLOW.stream) { FLOW.stream.close(); FLOW.stream = null; FLOW.feed = null; clearInterval(FLOW.timer); } renderTabs(TR.TABS); $('#cmd').placeholder = 'treasury: click a chain · yields · stables · holdings · markets to go back'; await TR.enter({drawScene, EMA, jump: (sym) => setMode('markets').then(() => selectMarket(sym))}); }
+  else { TR.leave(); renderTabs(MARKET_TABS); $('#tfs').style.visibility = ''; $('#cmd').placeholder = 'type a market or a command: gold 15m · btc gex · es levels · draw fib · help'; renderRail(); await selectMarket(cur.market, cur.iv, true); }
 }
 function applyEngine(e) {
-  engine = e === 'svg' ? 'svg' : 'lw'; try { localStorage.setItem('fv-engine', engine); } catch (x) {}
+  engine = e === 'svg' ? 'svg' : 'lw'; try { localStorage.setItem('fv-engine', engine); const u = new URL(location.href); if (engine === 'svg') u.searchParams.set('engine', 'svg'); else u.searchParams.delete('engine'); history.replaceState(null, '', u); } catch (x) {}
   $('#chart').hidden = engine === 'svg'; $('#csvg').toggleAttribute('hidden', engine !== 'svg'); $('#cpane').toggleAttribute('hidden', engine !== 'svg');  // SVG nodes have no .hidden property
   $$('#engine button').forEach(b => b.classList.toggle('on', b.dataset.eng === engine)); $('#tools').classList.toggle('off', engine === 'svg'); $('#tools').title = engine === 'svg' ? 'drawings live on the TradingView engine' : '';
   if (engine === 'svg' && !SV) SV = createSvgChart($('#csvg'), $('#cpane'), {onHover: showOHLC});
@@ -271,6 +276,14 @@ function run(text) {
   else if (['levels', 'regime', 'flow', 'gamma', 'calc', 'desk'].includes(v)) showTab(v);
   if (r.market || r.tf) { if (MODE === 'treasury') setMode('markets').then(() => selectMarket(r.market || cur.market, r.tf || undefined)); else selectMarket(r.market || cur.market, r.tf || undefined); } flash('ok');
 }
+function welcome() { sheet('Welcome to FortunaVision', `
+  <p style="color:var(--text);font-size:var(--t-md)">One market at a time, deeply. The chart is the hero; everything else is an instrument around it.</p>
+  <table class="tb"><tr><th>Left</th><td>every market Fortuna watches, with live price and watchlist status. Click one.</td></tr>
+  <tr><th>Centre</th><td>the chart. Scroll to zoom, drag to pan, drag an axis to scale, double-click to fit. The legend toggles overlays; the toolbar on the left draws.</td></tr>
+  <tr><th>Right</th><td>Levels · Regime · Flow · Gamma · Calc · Desk: what the engines see for the market in view.</td></tr>
+  <tr><th>Bottom</th><td>the command line. <code>gold 15m</code> · <code>btc gamma</code> · <code>draw fib</code> · <code>alert above 4020</code> · <code>treasury</code> · <code>help</code>. Press <code>/</code> to focus it from anywhere.</td></tr></table>
+  <p>Two chart engines (TradingView's and Fortuna's own SVG) draw the same scene; switch in the header. Every number comes from a public source, nothing needs a key, and nothing you draw or set leaves this browser.</p>
+  <p style="margin-top:.6rem"><button class="btn brass" type="button" onclick="document.getElementById('sheet').hidden=true">start</button> <span class="muted" style="font-size:var(--t-xs)">press <code>?</code> any time for the commands and keys</span></p>`); }
 function sheet(title, html) { $('#sheet-title').textContent = title; $('#sheet-body').innerHTML = html; $('#sheet').hidden = false; }
 function closeSheet() { $('#sheet').hidden = true; }
 try { const th = localStorage.getItem('fv-theme'); if (th) document.documentElement.dataset.theme = th; } catch (e) {}

@@ -34,7 +34,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .rail { border-right: 1px solid var(--line); overflow-y: auto; background: var(--panel); }
 .rail .r { display: grid; grid-template-columns: 1fr auto; gap: .1rem .5rem; padding: .5rem .8rem; border-bottom: 1px solid var(--line); cursor: pointer; align-items: center; }
 .rail .r:hover { background: var(--panel-2); } .rail .r.on { background: var(--brass-2); box-shadow: inset 3px 0 0 var(--brass); }
-.rail .r b { font-weight: 500; } .rail .r .px { font-family: var(--mono); font-size: var(--t-sm); text-align: right; } .rail .r small { color: var(--muted); font-size: var(--t-xs); } .rail .r .chg { font-family: var(--mono); font-size: var(--t-xs); text-align: right; }
+.rail .r b { font-weight: 500; } .rail .r small { display: flex; align-items: center; gap: .4rem; } .rail .r .sp { width: 64px; height: 16px; flex: none; opacity: .9; }
+tr.jump { cursor: pointer; } tr.jump:hover td { background: var(--brass-2); } .rail .r .px { font-family: var(--mono); font-size: var(--t-sm); text-align: right; } .rail .r small { color: var(--muted); font-size: var(--t-xs); } .rail .r .chg { font-family: var(--mono); font-size: var(--t-xs); text-align: right; }
 .rail .r .st { font-size: .62rem; color: var(--muted); padding: 0 .35rem; border: 1px solid var(--line-2); border-radius: 4px; margin-left: .3rem; } .rail .r .st.armed { color: var(--up); border-color: rgba(61,220,151,.4); } .rail .r .st.watch { color: var(--amber); border-color: rgba(242,185,75,.4); }
 .rail .grp { padding: .55rem .8rem .2rem; font-size: var(--t-xs); color: var(--dim); }
 

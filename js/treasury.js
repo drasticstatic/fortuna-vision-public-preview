@@ -16,7 +16,7 @@ const S = {chains: null, chain: 'Ethereum', hist: {}, pools: null, stables: null
 let app = null;
 
 export async function enter(ctx) {
-  app = ctx; S.tab = 'caps';
+  app = ctx; S.tab = 'caps'; S.jump = ctx.jump;
   $('#mkt').textContent = 'Treasury'; $('#mkt-sub').textContent = 'loading chains…';
   try { S.chains = (await get(LLAMA + '/v2/chains')).filter(c => c.tvl > 0).sort((a, b) => b.tvl - a.tvl); } catch (e) { $('#mkt-sub').textContent = 'DeFiLlama unavailable'; return; }
   renderRail(); await selectChain(S.chain);
@@ -45,7 +45,8 @@ async function tabCaps() {
   const g = S.global; const dom = g.market_cap_percentage || {}; const total = g.total_market_cap.usd, vol = g.total_volume.usd; const total2 = total * (1 - (dom.btc || 0) / 100);
   el.innerHTML = `<div class="tile"><small>total crypto market cap</small><div class="big ${cls(g.market_cap_change_percentage_24h_usd)}">${big(total)}</div><small>${pct(g.market_cap_change_percentage_24h_usd)} 24h · volume ${big(vol)} · TOTAL2 (ex-BTC) ${big(total2)}</small></div>
     <div class="tile"><small>dominance</small><div class="prints">${Object.entries(dom).slice(0, 8).map(([k, v]) => `<span>${esc(k.toUpperCase())} <b>${v.toFixed(1)}%</b></span>`).join('')}</div></div>
-    <h4>Top 50 by market cap</h4><table class="tb"><tr><th>#</th><th>asset</th><th class="n">price</th><th class="n">24h</th><th class="n">7d</th><th class="n">30d</th><th class="n">cap</th></tr>${S.caps.map(c => `<tr><td class="muted">${c.market_cap_rank}</td><td>${esc(c.symbol.toUpperCase())}<br><small class="muted">${esc(c.name)}</small></td><td class="n">${usd(c.current_price, c.current_price < 1 ? 4 : 2)}</td><td class="n ${cls(c.price_change_percentage_24h_in_currency)}">${pct(c.price_change_percentage_24h_in_currency, 1)}</td><td class="n ${cls(c.price_change_percentage_7d_in_currency)}">${pct(c.price_change_percentage_7d_in_currency, 1)}</td><td class="n ${cls(c.price_change_percentage_30d_in_currency)}">${pct(c.price_change_percentage_30d_in_currency, 1)}</td><td class="n">${big(c.market_cap)}</td></tr>`).join('')}</table><p>CoinGecko, refreshed every two minutes while open. Market cap and dominance are the treasury's weather; the chains rail is where the value is actually put to work.</p>`;
+    <h4>Top 50 by market cap</h4><table class="tb"><tr><th>#</th><th>asset</th><th class="n">price</th><th class="n">24h</th><th class="n">7d</th><th class="n">30d</th><th class="n">cap</th></tr>${S.caps.map(c => `<tr class="${['btc', 'eth', 'sol'].includes(c.symbol) ? 'jump' : ''}" data-sym="${esc(c.symbol.toUpperCase())}" title="${['btc', 'eth', 'sol'].includes(c.symbol) ? 'open the chart' : ''}"><td class="muted">${c.market_cap_rank}</td><td>${esc(c.symbol.toUpperCase())}<br><small class="muted">${esc(c.name)}</small></td><td class="n">${usd(c.current_price, c.current_price < 1 ? 4 : 2)}</td><td class="n ${cls(c.price_change_percentage_24h_in_currency)}">${pct(c.price_change_percentage_24h_in_currency, 1)}</td><td class="n ${cls(c.price_change_percentage_7d_in_currency)}">${pct(c.price_change_percentage_7d_in_currency, 1)}</td><td class="n ${cls(c.price_change_percentage_30d_in_currency)}">${pct(c.price_change_percentage_30d_in_currency, 1)}</td><td class="n">${big(c.market_cap)}</td></tr>`).join('')}</table><p>CoinGecko, refreshed every two minutes while open. Market cap and dominance are the treasury's weather; the chains rail is where the value is actually put to work. Rows with a chart open it on click.</p>`;
+  $$('tr.jump', el).forEach(r => r.addEventListener('click', () => S.jump && S.jump(r.dataset.sym)));
 }
 async function tabYields() {
   const el = $('#tab-yields'); if (!el) return;
