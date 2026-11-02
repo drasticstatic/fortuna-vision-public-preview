@@ -1,6 +1,11 @@
+<!-- readme-standard: 2026-11-02 -->
+<div align="center">
+
+<img src="assets/banner.svg" width="100%" alt="FortunaVision: candles draw across a chart. An illustration only, never real data and never a real pair.">
+
 # 👁️ FortunaVision — a chart-first market & treasury workstation
 
-> One market at a time, deeply: TradingView's open-source chart engine beside Fortuna's own SVG engine, the markets on the left, the instruments on the right, a function-code command line underneath. Static, runs anywhere, no keys.
+*A chart-first market and treasury workstation. Static, runs anywhere, no keys.*
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey?style=flat)](LICENSE)
 [![Live](https://img.shields.io/badge/%F0%9F%91%81%EF%B8%8F%20Live-drasticstatic.github.io%2Ffortuna--vision--public--preview-brightgreen)](https://drasticstatic.github.io/fortuna-vision-public-preview/)
@@ -8,6 +13,21 @@
 [![Lightweight Charts](https://img.shields.io/badge/TradingView-Lightweight%20Charts%20v5.2.1-black?logo=tradingview)](https://github.com/tradingview/lightweight-charts)
 [![Built with Claude Code](https://img.shields.io/badge/built%20with-Claude%20Code%20%C2%B7%20Fable%205.1-6366f1)](https://claude.com/claude-code)
 [![Data: public sources only](https://img.shields.io/badge/data-public%20sources%20only%20%C2%B7%20no%20keys-d9a441)](#-every-number-has-a-source)
+
+<img src="assets/icons/map-pin.svg" width="16" height="16" alt=""> **You are here:** drasticstatic lab › source `fortuna-vision` (private) → twin `fortuna-vision-public-preview` (public) · `main` is the working branch
+
+</div>
+
+## <img src="assets/icons/compass.svg" width="24" height="24" alt=""> TL;DR
+
+1. <img src="assets/icons/eye.svg" width="16" height="16" alt=""> **What this is.** TradingView's open-source chart engine beside Fortuna's own SVG engine: markets on the left, instruments on the right, a command line underneath.
+2. <img src="assets/icons/users-round.svg" width="16" height="16" alt=""> **Who it is for.** Anyone who wants to read one market deeply; treasury mode turns the same screen toward a DAO or non-profit treasury.
+3. <img src="assets/icons/footprints.svg" width="16" height="16" alt=""> **Do this first.** [Open FortunaVision](https://drasticstatic.github.io/fortuna-vision-public-preview/), or run `python3 -m http.server 8788` here and open `http://localhost:8788/`.
+
+---
+
+> One market at a time, deeply: TradingView's open-source chart engine beside Fortuna's own SVG engine, the markets on the left, the instruments on the right, a function-code command line underneath. Static, runs anywhere, no keys.
+
 
 > [👁️ **Open FortunaVision**](https://drasticstatic.github.io/fortuna-vision-public-preview/) &nbsp;·&nbsp; [⚡ Fortuna Terminal](https://drasticstatic.github.io/trading-assistant-public-preview/data/progression/terminal/) (the live-operations page that feeds it) &nbsp;·&nbsp; [📈 Trading Assistant](https://github.com/drasticstatic/trading-assistant-public-preview) &nbsp;·&nbsp; [🧭 Where things live](#%EF%B8%8F-where-things-live)
 
@@ -102,3 +122,9 @@ No keys, no accounts, nothing leaves the page except the requests above.
 ## 🧭 Roadmap
 
 Phase 1 (shipped Oct 26, 2026): the workstation shell, two chart engines, overlays, drawings, the indicator contract, Flow, Gamma, Calc with the ladder planner, Desk, Treasury mode, price alerts, the command line. Oct 27: wallets by public address, the Policy tab with drift, a mobile pass. Next: Safe adapters, the macro adapters through a proxy, bar replay and alerts on drawings (references in quant-terminal), a mobile pass, and the Fortuna Terminal's migration here after the October competition closes.
+
+## <img src="assets/icons/git-pull-request.svg" width="24" height="24" alt=""> Suggest a change
+
+Noticed something? Open an [issue](../../issues) or a pull request against `main`; Christopher reads them and a person with the role merges. Not on GitHub? Reach him through any channel on [his profile](https://github.com/drasticstatic). On the public preview, please open an issue rather than a pull request: its files are synced from the private source, so a change made only there would be overwritten.
+
+<sub>The front door follows the living [README standard](https://github.com/drasticstatic/my-template/blob/main/README-STANDARD.md). Copy it, improve it.</sub>

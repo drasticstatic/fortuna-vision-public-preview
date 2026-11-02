@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260" role="img" aria-labelledby="t d">
+  <title id="t">FortunaVision</title>
+  <desc id="d">One market at a time, deeply. The picture: 15 candles arrive left to right with a line along their closes; the shapes are illustration, not data. With reduced motion, the finished picture shows at once.</desc>
+  <style>
+    /* Motion only for readers who have not asked for less. Outside this block everything is in its finished state. */
+    @media (prefers-reduced-motion: no-preference) {
+      .draw { stroke-dasharray: 100; animation: draw 2.6s cubic-bezier(.4,0,.2,1) both; }
+      .arrive { animation: arrive .5s ease-out both; }
+      .breathe { transform-box: fill-box; transform-origin: center; animation: breathe 8s steps(48) 3s infinite; }
+      .halo { transform-box: fill-box; transform-origin: center; animation: halo 5s steps(60) 3.6s infinite; }
+    }
+    @keyframes draw { from { stroke-dashoffset: 100 } to { stroke-dashoffset: 0 } }
+    @keyframes arrive { from { opacity: 0 } to { opacity: 1 } }
+    @keyframes breathe { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.07) } }
+    @keyframes halo { 0% { opacity: .55; transform: scale(1) } 70%, 100% { opacity: 0; transform: scale(2.1) } }
+    .halo { opacity: 0 }
+  </style>
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a2230"/><stop offset="1" stop-color="#101622"/></linearGradient>
+    <linearGradient id="line" gradientUnits="userSpaceOnUse" x1="668" y1="0" x2="1160" y2="0"><stop offset="0.00" stop-color="#8a6a2a"/><stop offset="0.50" stop-color="#d9a441"/><stop offset="1.00" stop-color="#e6d1a6"/></linearGradient>
+    <linearGradient id="fade" gradientUnits="userSpaceOnUse" x1="620" y1="0" x2="1200" y2="0"><stop offset="0" stop-color="#d9a441" stop-opacity="0"/><stop offset=".35" stop-color="#d9a441"/><stop offset="1" stop-color="#e6d1a6"/></linearGradient>
+    <clipPath id="card"><rect width="1200" height="260" rx="18"/></clipPath>
+  </defs>
+  <g clip-path="url(#card)">
+    <!-- an opaque ground: the same picture on GitHub's light and dark themes -->
+    <rect width="1200" height="260" fill="url(#ground)"/>
+    <g class="arrive" style="animation-delay:0.25s"><path d="M695.6 194.9V212.0" stroke="#d9a441" stroke-width="1.5"/><rect x="686.2" y="197.5" width="18.7" height="13.0" rx="1" fill="#d9a441"/></g>
+    <g class="arrive" style="animation-delay:0.42s"><path d="M726.8 165.0V200.0" stroke="#d9a441" stroke-width="1.5"/><rect x="717.4" y="169.0" width="18.7" height="28.5" rx="1" fill="#d9a441"/></g>
+    <g class="arrive" style="animation-delay:0.60s"><path d="M758.0 143.0V185.5" stroke="#d9a441" stroke-width="1.5"/><rect x="748.6" y="162.0" width="18.7" height="7.0" rx="1" fill="#d9a441"/></g>
+    <g class="arrive" style="animation-delay:0.77s"><path d="M789.2 126.7V169.7" stroke="#d9a441" stroke-width="1.5"/><rect x="779.8" y="145.8" width="18.7" height="16.2" rx="1" fill="#d9a441"/></g>
+    <g class="arrive" style="animation-delay:0.94s"><path d="M820.4 124.9V183.4" stroke="#705c38" stroke-width="1.5"/><rect x="811.0" y="145.8" width="18.7" height="16.2" rx="1" fill="#101622" stroke="#705c38" stroke-width="1.5"/></g>
+    <g class="arrive" style="animation-delay:1.12s"><path d="M851.6 122.0V184.4" stroke="#d9a441" stroke-width="1.5"/><rect x="842.2" y="141.1" width="18.7" height="20.9" rx="1" fill="#d9a441"/></g>
+    <g class="arrive" style="animation-delay:1.29s"><path d="M882.8 111.9V160.7" stroke="#d9a441" stroke-width="1.5"/><rect x="873.4" y="126.4" width="18.7" height="14.7" rx="1" fill="#d9a441"/></g>
+    <g class="arrive" style="animation-delay:1.46s"><path d="M914.0 83.0V143.5" stroke="#d9a441" stroke-width="1.5"/><rect x="904.6" y="100.3" width="18.7" height="26.2" rx="1" fill="#d9a441"/></g>
+    <g class="arrive" style="animation-delay:1.64s"><path d="M945.2 72.9V107.9" stroke="#d9a441" stroke-width="1.5"/><rect x="935.8" y="85.0" width="18.7" height="15.3" rx="1" fill="#d9a441"/></g>
+    <g class="arrive" style="animation-delay:1.81s"><path d="M976.4 62.5V89.3" stroke="#d9a441" stroke-width="1.5"/><rect x="967.0" y="75.3" width="18.7" height="9.7" rx="1" fill="#d9a441"/></g>
+    <g class="arrive" style="animation-delay:1.98s"><path d="M1007.6 74.6V92.2" stroke="#705c38" stroke-width="1.5"/><rect x="998.2" y="75.3" width="18.7" height="2.0" rx="1" fill="#101622" stroke="#705c38" stroke-width="1.5"/></g>
+    <g class="arrive" style="animation-delay:2.16s"><path d="M1038.8 46.1V78.9" stroke="#d9a441" stroke-width="1.5"/><rect x="1029.4" y="65.4" width="18.7" height="11.8" rx="1" fill="#d9a441"/></g>
+    <g class="arrive" style="animation-delay:2.33s"><path d="M1070.0 48.6V78.3" stroke="#705c38" stroke-width="1.5"/><rect x="1060.6" y="65.4" width="18.7" height="10.0" rx="1" fill="#101622" stroke="#705c38" stroke-width="1.5"/></g>
+    <g class="arrive" style="animation-delay:2.50s"><path d="M1101.2 43.4V92.6" stroke="#d9a441" stroke-width="1.5"/><rect x="1091.8" y="56.9" width="18.7" height="18.5" rx="1" fill="#d9a441"/></g>
+    <g class="arrive" style="animation-delay:2.68s"><path d="M1132.4 38.0V87.0" stroke="#705c38" stroke-width="1.5"/><rect x="1123.0" y="56.9" width="18.7" height="12.2" rx="1" fill="#101622" stroke="#705c38" stroke-width="1.5"/></g>
+    <path class="draw" pathLength="100" d="M695.6 197.5 L726.8 169.0 L758.0 162.0 L789.2 145.8 L820.4 162.0 L851.6 141.1 L882.8 126.4 L914.0 100.3 L945.2 85.0 L976.4 75.3 L1007.6 77.2 L1038.8 65.4 L1070.0 75.4 L1101.2 56.9 L1132.4 69.1" fill="none" stroke="#e6d1a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation-delay:1.80s"/>
+    <circle class="halo" cx="1132.4" cy="69.1" r="9" fill="none" stroke="#e6d1a6" stroke-width="2"/>
+    <circle cx="1132.4" cy="69.1" r="4.5" fill="#e6d1a6"/>
+    <rect x="0.0" y="248" width="300.5" height="12" fill="#334155"/><rect x="300.0" y="248" width="300.5" height="12" fill="#8a6a2a"/><rect x="600.0" y="248" width="300.5" height="12" fill="#d9a441"/><rect x="900.0" y="248" width="300.5" height="12" fill="#f1f5f9"/>
+    <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif"><text x="56" y="72.0" fill="#d9a441" font-size="15" font-weight="700" letter-spacing=".6">drasticstatic lab · a chart-first workstation</text><text x="56" y="137.6" fill="#f1f5f9" font-size="60" font-weight="700" letter-spacing="-.5">FortunaVision</text><text x="56" y="181.4" fill="#d3d7dd" font-size="23">One market at a time, deeply.</text></g>
+  </g>
+</svg>
