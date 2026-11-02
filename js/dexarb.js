@@ -2,7 +2,7 @@
  * Authored by Alfred (FortunaTradesARB) as a tandem adapter for FortunaVision; Fortuna owns the shell.
  * Source: https://drasticstatic.github.io/trading-bot-arbitrage-public/edge/latest.json (CORS open, nightly,
  * in costume: pairs and venues wear stage names on the public copy, the numbers are the real study).
- * Shape documented in that repo's scripts/edge-report.js (writePublicSnapshot) and agent-notes loop-backs. */
+ * Shape documented in that repo's scripts/edge-report.js (writePublicSnapshot) and its private loop-back notes. */
 const SNAP = 'https://drasticstatic.github.io/trading-bot-arbitrage-public/edge/latest.json';
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));

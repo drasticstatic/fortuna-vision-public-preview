@@ -11,7 +11,7 @@
 
 > [👁️ **Open FortunaVision**](https://drasticstatic.github.io/fortuna-vision-public-preview/) &nbsp;·&nbsp; [⚡ Fortuna Terminal](https://drasticstatic.github.io/trading-assistant-public-preview/data/progression/terminal/) (the live-operations page that feeds it) &nbsp;·&nbsp; [📈 Trading Assistant](https://github.com/drasticstatic/trading-assistant-public-preview) &nbsp;·&nbsp; [🧭 Where things live](#%EF%B8%8F-where-things-live)
 
-> 🔒 **Note for visitors:** this repository is the **public preview** of a private lane (`drasticstatic/fortuna-vision`), synced on every push. The private lane holds the agent-notes files, specs and scripts, and the design of a treasury-management framework for agentic DAOs. Everything you see here runs as-is: open `index.html` from any static host.
+> 🔒 **Note for visitors:** this repository is the **public preview** of a private lane (`drasticstatic/fortuna-vision`), synced on every push. The private lane holds the agent notes, specs and scripts, and the design of a treasury-management framework for agentic DAOs. Everything you see here runs as-is: open `index.html` from any static host.
 
 > 🧠 **The proprietary boundary:** the coaching strategies Fortuna trades (ZTH, Inevitrade, STB) belong to their authors. FortunaVision computes generic measures (levels, regime, alignment, fibs, money flow, gamma, flow) and shows whether a read is *eligible* per a private scanner, never the card rules, ladder defaults or gates. Christopher's own **Auto Levels** indicator is his to share, and it is, as `engines/autolevels.js`.
 
@@ -91,7 +91,7 @@ No keys, no accounts, nothing leaves the page except the requests above.
 | [👁️ FortunaVision](https://drasticstatic.github.io/fortuna-vision-public-preview/) | the workstation (this repo's preview) |
 | [⚡ Fortuna Terminal](https://drasticstatic.github.io/trading-assistant-public-preview/data/progression/terminal/) | Fortuna's live operations: check-ins, trades, scanner, alerts; the chart header links here |
 | [🏛️ Gallery](https://drasticstatic.github.io/trading-assistant-public-preview/data/progression/gallery.html) · [💼 Portfolio](https://drasticstatic.github.io/trading-assistant-public-preview/portfolio.html) | prop-firm accounts · live personal venues |
-| `drasticstatic/fortuna-vision` (private) | agent-notes, specs, scripts, the treasury-framework design |
+| `drasticstatic/fortuna-vision` (private) | agent notes, specs, scripts, the treasury-framework design |
 
 ## 🙏 Credits
 
