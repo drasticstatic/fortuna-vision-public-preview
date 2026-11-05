@@ -12,7 +12,7 @@
 [![Public Preview](https://img.shields.io/badge/%F0%9F%8C%90%20Public%20Preview-synced%20from%20the%20private%20lane-blue)](https://github.com/drasticstatic/fortuna-vision-public-preview)
 [![Lightweight Charts](https://img.shields.io/badge/TradingView-Lightweight%20Charts%20v5.2.1-black?logo=tradingview)](https://github.com/tradingview/lightweight-charts)
 [![Built with Claude Code](https://img.shields.io/badge/built%20with-Claude%20Code%20%C2%B7%20Fable%205.1-6366f1)](https://claude.com/claude-code)
-[![Data: public sources only](https://img.shields.io/badge/data-public%20sources%20only%20%C2%B7%20no%20keys-d9a441)](#-every-number-has-a-source)
+[![Data: public sources only](https://img.shields.io/badge/data-public%20sources%20only%20%C2%B7%20no%20keys-800020)](#-every-number-has-a-source)
 
 <img src="assets/icons/map-pin.svg" width="16" height="16" alt=""> **You are here:** drasticstatic lab › source `fortuna-vision` (private) → twin `fortuna-vision-public-preview` (public) · `main` is the working branch
 
